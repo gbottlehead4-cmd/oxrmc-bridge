@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://oxrmc-bridge.pages.dev/sitemap.xml
