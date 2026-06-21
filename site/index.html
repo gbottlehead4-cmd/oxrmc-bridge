@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<title>OXRMC Bridge — Controller-free VR motion compensation for SimHub rigs</title>
+<meta name="description" content="A free SimHub plugin that feeds your motion rig's pose to OpenXR-MotionCompensation. No VR controller to mount, no controller falling asleep. Works with iRacing, LMU, ACC and any SimHub game." />
+
+<!-- Open Graph / social preview -->
+<meta property="og:title" content="OXRMC Bridge — Controller-free VR motion compensation" />
+<meta property="og:description" content="Free SimHub plugin. Feeds your motion rig's pose to OpenXR-MotionCompensation. No controller to mount. iRacing, LMU, ACC and more." />
+<meta property="og:type" content="website" />
+<!-- TODO: set og:image to an absolute URL of a screenshot once hosted, e.g. https://oxrmc-bridge.pages.dev/preview.png -->
+
+<style>
+  :root {
+    --bg: #0c0f14;
+    --bg-soft: #131820;
+    --card: #161c26;
+    --border: #232c3a;
+    --text: #e7edf5;
+    --muted: #9aa7b8;
+    --accent: #ff5630;      /* racing orange-red */
+    --accent-2: #36c5f0;    /* telemetry cyan */
+    --good: #2bd576;
+    --warn: #ffcf4d;
+    --radius: 14px;
+    --max: 1040px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent-2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: var(--max); margin: 0 auto; padding: 0 22px; }
+  h1, h2, h3 { line-height: 1.2; margin: 0 0 .4em; }
+  h2 { font-size: clamp(1.5rem, 3vw, 2rem); margin-top: 0; }
+  .muted { color: var(--muted); }
+
+  /* Nav */
+  nav {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(12,15,20,.82);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+  .brand { font-weight: 700; letter-spacing: .2px; color: var(--text); }
+  .brand span { color: var(--accent); }
+  .nav-links a { color: var(--muted); margin-left: 22px; font-size: .95rem; }
+  .nav-links a:hover { color: var(--text); text-decoration: none; }
+  @media (max-width: 640px) { .nav-links { display: none; } }
+
+  /* Hero */
+  .hero {
+    position: relative;
+    padding: 72px 0 60px;
+    background:
+      radial-gradient(1200px 500px at 70% -10%, rgba(255,86,48,.16), transparent 60%),
+      radial-gradient(900px 500px at 10% 10%, rgba(54,197,240,.10), transparent 55%);
+    border-bottom: 1px solid var(--border);
+  }
+  .hero h1 { font-size: clamp(2rem, 5vw, 3.2rem); }
+  .hero .tag { color: var(--accent); font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; font-size: .82rem; }
+  .hero .lead { font-size: clamp(1.05rem, 2.2vw, 1.3rem); color: var(--muted); max-width: 640px; margin: 18px 0 28px; }
+  .cta-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 9px;
+    padding: 13px 22px; border-radius: 11px; font-weight: 600; font-size: 1rem;
+    border: 1px solid transparent; cursor: pointer; transition: transform .08s ease, filter .15s ease;
+  }
+  .btn:hover { text-decoration: none; transform: translateY(-1px); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { filter: brightness(1.08); }
+  .btn-ghost { background: transparent; color: var(--text); border-color: var(--border); }
+  .btn-ghost:hover { border-color: var(--muted); }
+  .btn-kofi { background: #29abe0; color: #fff; }
+  .btn-kofi:hover { filter: brightness(1.08); }
+
+  /* Media frame (hero video/screenshot) */
+  .media {
+    margin-top: 44px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-soft);
+    aspect-ratio: 16 / 9;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+  .media iframe { width: 100%; height: 100%; border: 0; }
+  .media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .media .placeholder { text-align: center; color: var(--muted); padding: 24px; }
+  .media .placeholder .big { font-size: 2.4rem; margin-bottom: 8px; }
+
+  /* Guide steps with screenshots */
+  .guide-step {
+    display: grid; grid-template-columns: 1fr 1.15fr; gap: 26px; align-items: center;
+    padding: 30px 0; border-bottom: 1px solid var(--border);
+  }
+  .guide-step:last-child { border-bottom: 0; }
+  .guide-step.flip .gs-text { order: 2; }
+  .guide-step.flip .gs-shot { order: 1; }
+  @media (max-width: 760px) {
+    .guide-step { grid-template-columns: 1fr; gap: 16px; }
+    .guide-step.flip .gs-text { order: 0; }
+    .guide-step.flip .gs-shot { order: 0; }
+  }
+  .gs-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--accent); color: #fff; font-weight: 700; font-size: 1rem; margin-bottom: 12px;
+  }
+  .gs-text h3 { font-size: 1.2rem; }
+  .gs-text p { color: var(--muted); margin: 6px 0 0; }
+  .gs-text ul { color: var(--muted); margin: 8px 0 0; padding-left: 18px; }
+  .shot {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--bg); overflow: hidden;
+  }
+  .shot img { width: 100%; display: block; }
+  .shot .ph {
+    aspect-ratio: 16 / 10; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+    color: var(--muted); padding: 18px; background: var(--bg-soft);
+  }
+  .shot .ph .big { font-size: 2rem; margin-bottom: 6px; }
+  .phase-label {
+    display: inline-block; font-size: .78rem; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--accent); margin: 8px 0 2px;
+  }
+
+  section { padding: 64px 0; border-bottom: 1px solid var(--border); }
+  section.alt { background: var(--bg-soft); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  @media (max-width: 760px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px;
+  }
+  .card h3 { font-size: 1.15rem; }
+  .pill { display: inline-block; font-size: .72rem; font-weight: 700; letter-spacing: .5px;
+    padding: 3px 10px; border-radius: 999px; text-transform: uppercase; }
+  .pill.sensor { background: rgba(43,213,118,.14); color: var(--good); border: 1px solid rgba(43,213,118,.35); }
+  .pill.telemetry { background: rgba(255,207,77,.12); color: var(--warn); border: 1px solid rgba(255,207,77,.35); }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: .9rem; }
+
+  .games { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+  .games span {
+    background: var(--card); border: 1px solid var(--border);
+    padding: 8px 14px; border-radius: 999px; font-size: .92rem; color: var(--text);
+  }
+
+  ol.steps { counter-reset: step; list-style: none; padding: 0; margin: 0; }
+  ol.steps li {
+    position: relative; padding: 14px 0 14px 52px; border-bottom: 1px solid var(--border);
+  }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before {
+    counter-increment: step; content: counter(step);
+    position: absolute; left: 0; top: 12px;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--accent); color: #fff; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; font-size: .95rem;
+  }
+  code, .mono { font-family: "SF Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+    background: #0a0d12; border: 1px solid var(--border); padding: 2px 7px; border-radius: 6px; font-size: .9em; }
+
+  .note {
+    display: flex; gap: 14px; background: rgba(255,207,77,.06);
+    border: 1px solid rgba(255,207,77,.3); border-radius: var(--radius);
+    padding: 18px 20px; margin-top: 22px;
+  }
+  .note .ic { font-size: 1.4rem; line-height: 1; }
+  .note h3 { color: var(--warn); margin-bottom: 4px; font-size: 1rem; }
+
+  .donate-box { text-align: center; max-width: 620px; margin: 0 auto; }
+
+  footer { padding: 40px 0; text-align: center; color: var(--muted); font-size: .9rem; }
+  footer a { color: var(--muted); margin: 0 10px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="brand">OXRMC <span>Bridge</span></div>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#games">Games</a>
+      <a href="#install">Setup guide</a>
+      <a href="#tuning">Tuning</a>
+      <a href="#donate">Support</a>
+      <a href="https://github.com/gbottlehead4-cmd/oxrmc-bridge" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="tag">Free SimHub plugin</div>
+    <h1>Stop mounting a controller on your motion rig.</h1>
+    <p class="lead">
+      OXRMC Bridge feeds your motion rig's real pose straight into
+      OpenXR-MotionCompensation — so your VR view stays locked while the rig moves.
+      No controller to strap on. No controller falling asleep mid-stint.
+    </p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="https://github.com/gbottlehead4-cmd/oxrmc-bridge/releases/latest" target="_blank" rel="noopener">
+        ⬇ Download (free)
+      </a>
+      <a class="btn btn-ghost" href="#how">How it works</a>
+      <a class="btn btn-kofi" href="https://ko-fi.com/gidrux" target="_blank" rel="noopener">☕ Buy me a coffee</a>
+    </div>
+  </div>
+</header>
+
+<section id="why">
+  <div class="wrap">
+    <h2>The problem it solves</h2>
+    <div class="grid-2" style="margin-top:24px;">
+      <div class="card">
+        <h3>The usual way is annoying</h3>
+        <p class="muted">VR motion compensation needs an independent reference for how the rig is moving. The documented trick is to strap a VR controller to the rig — but the controller goes to sleep when idle and drops tracking, and there's no setting to keep it awake.</p>
+      </div>
+      <div class="card">
+        <h3>This plugin's way</h3>
+        <p class="muted">OXRMC Bridge generates the rig's pose itself and writes it to the shared memory OpenXR-MotionCompensation reads. Nothing to mount, nothing to charge, nothing that sleeps. Set it once and forget it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how" class="alt">
+  <div class="wrap">
+    <h2>How it works</h2>
+    <p class="muted" style="max-width:680px;">Two modes, automatic switching. Plug in a sensor for true physical accuracy, or run it with zero extra hardware off your game's telemetry.</p>
+    <table>
+      <thead>
+        <tr><th>Mode</th><th>Source</th><th>Accuracy</th><th>Requires</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="pill sensor">Sensor</span></td>
+          <td>WitMotion sensor on the rig</td>
+          <td>High — measures actual physical tilt</td>
+          <td>WitMotion WT901C-RS232 + USB adapter</td>
+        </tr>
+        <tr>
+          <td><span class="pill telemetry">Telemetry</span></td>
+          <td>Game g-forces via SimHub</td>
+          <td>Approximate — estimated from accelerations</td>
+          <td>Nothing extra</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="muted" style="margin-top:16px;">When a sensor is connected, the plugin reads the rig's real pitch and roll. If there's no sensor (or it disconnects), it automatically falls back to estimating rig motion from the game. Either way it writes to the <code>motionRigPose</code> shared memory that OXRMC reads with <code>type = flypt</code>.</p>
+  </div>
+</section>
+
+<section id="games">
+  <div class="wrap">
+    <h2>Works with your sim</h2>
+    <p class="muted">Anything SimHub supports, including:</p>
+    <div class="games">
+      <span>iRacing</span><span>Le Mans Ultimate</span><span>Assetto Corsa</span>
+      <span>ACC</span><span>Automobilista 2</span><span>rFactor 2</span>
+      <span>Project Cars</span><span>Dirt Rally</span><span>…and many more</span>
+    </div>
+    <div class="grid-2" style="margin-top:30px;">
+      <div class="card">
+        <h3>Requirements</h3>
+        <ul class="muted" style="margin:0; padding-left:18px;">
+          <li>SimHub 9.x — the free version is fine, no motion-addon license needed</li>
+          <li>OpenXR-MotionCompensation, set to <code>type = flypt</code></li>
+          <li>Windows with .NET Framework 4.8</li>
+          <li>Optional: WitMotion WT901C-RS232 + RS232-to-USB (CH340) adapter</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Works with any motion rig</h3>
+        <p class="muted" style="margin:0;">Every rig has its own post spacing, so measure yours and enter length, width, actuator stroke and 3- or 4-post layout in the plugin panel — it calculates your max angles automatically. No rebuilding, no code. (It ships pre-filled with the author's Sigma Integrale DK2 values as an example — just replace them with your own.)</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="install" class="alt">
+  <div class="wrap">
+    <h2>Setup guide</h2>
+    <p class="muted" style="max-width:720px;">Three quick parts: install <strong>OpenXR-MotionCompensation</strong> (the tool that actually stabilises your view — this plugin feeds it), install the plugin, then calibrate in VR. About ten minutes the first time.</p>
+
+    <!-- ============ PART 1 — OXRMC ============ -->
+    <div class="phase-label">Part 1 — Install OpenXR-MotionCompensation</div>
+
+    <div class="guide-step">
+      <div class="gs-text">
+        <div class="gs-num">1</div>
+        <h3>Download OpenXR-MotionCompensation</h3>
+        <p>Grab the latest installer from the official OXRMC releases page — the file named
+        <span class="mono">Install_OpenXR-MotionCompensation_&lt;version&gt;.exe</span>.</p>
+        <p style="margin-top:12px;">
+          <a class="btn btn-ghost" href="https://github.com/BuzzteeBear/OpenXR-MotionCompensation/releases" target="_blank" rel="noopener">Open OXRMC releases ↗</a>
+        </p>
+      </div>
+      <div class="gs-shot">
+        <div class="shot"><img src="img/oxrmc-download.png" alt="OXRMC GitHub releases page showing the Install .exe asset"></div>
+      </div>
+    </div>
+
+    <div class="guide-step" style="grid-template-columns:1fr;">
+      <div class="gs-text">
+        <div class="gs-num">2</div>
+        <h3>Run the installer</h3>
+        <p>Run it with your normal gaming Windows account so its settings land in the right place. Accept the default install location (a subfolder of Program Files works for all headsets, including WMR). That's all of Part 1 — OXRMC's config file is created during install.</p>
+      </div>
+    </div>
+
+    <!-- ============ PART 2 — Plugin ============ -->
+    <div class="phase-label" style="margin-top:30px;">Part 2 — Install the OXRMC Bridge plugin</div>
+
+    <div class="guide-step" style="grid-template-columns:1fr;">
+      <div class="gs-text">
+        <div class="gs-num">3</div>
+        <h3>Install the plugin (like any SimHub plugin)</h3>
+        <p>Close SimHub, then download <span class="mono">User.OXRMCBridge.dll</span> and drop it into your SimHub folder
+        (default <span class="mono">C:\Program Files (x86)\SimHub\</span>). Start SimHub back up — on first launch it pops up asking to enable the new plugin; click <strong>yes</strong> and let it restart. (Missed the popup? See step 4.)</p>
+        <ul>
+          <li>Don't want to hunt for the folder? Run the included <span class="mono">install.bat</span> (as admin) and it copies the DLL there for you.</li>
+        </ul>
+        <p style="margin-top:12px;">
+          <a class="btn btn-primary" href="https://github.com/gbottlehead4-cmd/oxrmc-bridge/releases/latest" target="_blank" rel="noopener">⬇ Download plugin</a>
+        </p>
+      </div>
+    </div>
+
+    <div class="guide-step">
+      <div class="gs-text">
+        <div class="gs-num">4</div>
+        <h3>Missed the popup? Enable it manually</h3>
+        <p>If the enable popup didn't appear (or you dismissed it), turn the plugin on by hand: in SimHub click <strong>Add/remove features</strong> in the left menu → find <strong>OXRMC Bridge</strong> → toggle it on (also enable <em>Show in left main menu</em>) → restart SimHub when asked.</p>
+      </div>
+      <div class="gs-shot">
+        <div class="shot"><img src="img/enable-plugin.png" alt="SimHub's Add/remove features dialog with OXRMC Bridge enabled"></div>
+      </div>
+    </div>
+
+    <div class="guide-step" style="grid-template-columns:1fr;">
+      <div class="gs-text">
+        <div class="gs-num">5</div>
+        <h3>Open the panel &amp; auto-configure OXRMC</h3>
+        <p>After restart, <strong>OXRMC Bridge</strong> appears in the left sidebar. Under <strong>OXRMC Setup</strong>, click <strong>Auto-configure OXRMC (flypt)</strong> — it sets the tracker type, turns on auto-activate, and backs up your config. No manual file editing, ever.</p>
+      </div>
+      <div class="gs-shot" style="margin-top:14px;">
+        <div class="shot" style="max-width:720px; margin:0 auto;"><img src="img/oxrmc-setup.png" alt="The plugin's OXRMC Setup section with the Auto-configure button highlighted"></div>
+      </div>
+    </div>
+
+    <div class="guide-step">
+      <div class="gs-text">
+        <div class="gs-num">6</div>
+        <h3>Telemetry or Sensor mode</h3>
+        <p>With no sensor the plugin runs in <span class="pill telemetry">Telemetry</span> mode — it estimates rig motion from in-game g-forces. Plug in a WitMotion sensor and it switches to <span class="pill sensor">Sensor</span> mode for true physical tilt. There's also a <strong>Blended</strong> mode that mixes both — use the <strong>CHANGE</strong> button to cycle modes.</p>
+        <p>Either way, the live roll/pitch values start moving once a game is running.</p>
+      </div>
+      <div class="gs-shot">
+        <div class="shot"><img src="img/mode-status.png" alt="The plugin Status section showing the mode and live roll/pitch values"></div>
+      </div>
+    </div>
+
+    <div class="guide-step">
+      <div class="gs-text">
+        <div class="gs-num">7</div>
+        <h3>Enter your rig's measurements</h3>
+        <p>Under <strong>Rig Dimensions</strong>, pick your post layout (3- or 4-post) and enter your rig's <strong>length</strong>, <strong>width</strong> and <strong>actuator stroke</strong> in mm. The plugin uses these to work out your max pitch/roll — wrong numbers mean wrong compensation limits.</p>
+        <ul>
+          <li>If your rig software reports different max angles, type them into the optional <em>Override</em> fields.</li>
+        </ul>
+      </div>
+      <div class="gs-shot">
+        <div class="shot"><img src="img/rig-dimensions.png" alt="The Rig Dimensions panel with the post diagram and length, width and stroke inputs"></div>
+      </div>
+    </div>
+
+    <!-- ============ PART 3 — Calibrate ============ -->
+    <div class="phase-label" style="margin-top:30px;">Part 3 — Calibrate in VR</div>
+
+    <div class="guide-step" style="grid-template-columns:1fr;">
+      <div class="gs-text">
+        <div class="gs-num">8</div>
+        <h3>Zero it and switch it on</h3>
+        <p>Launch your sim in VR (OpenXR). With the rig at its neutral resting position:</p>
+        <ul>
+          <li><code>CTRL+DEL</code> — calibrate (sets the reference pose)</li>
+          <li><code>CTRL+INS</code> — activate / deactivate compensation</li>
+          <li><code>CTRL+D</code> — toggle the centre-of-rotation overlay while you align it to your seat</li>
+        </ul>
+        <p>Drive a lap — the rig moves, your horizon stays put. If an axis fights you, use the plugin's <em>Invert Roll / Invert Pitch</em> buttons.</p>
+      </div>
+    </div>
+
+    <div class="note">
+      <div class="ic">🛡️</div>
+      <div>
+        <h3>About the Windows warning</h3>
+        <p class="muted" style="margin:0;">The plugin is an unsigned <code>.dll</code>, so Windows SmartScreen may warn you on download — this is normal for free open-source tools and doesn't mean anything's wrong. The full source is on GitHub if you'd rather build it yourself. Click <em>More info → Run anyway</em>, or right-click the file → Properties → <em>Unblock</em>.</p>
+      </div>
+    </div>
+
+    <div style="margin-top:26px;">
+      <a class="btn btn-primary" href="https://github.com/gbottlehead4-cmd/oxrmc-bridge/releases/latest" target="_blank" rel="noopener">⬇ Download plugin</a>
+      <a class="btn btn-ghost" href="https://github.com/BuzzteeBear/OpenXR-MotionCompensation" target="_blank" rel="noopener">OpenXR-MotionCompensation ↗</a>
+      <a class="btn btn-ghost" href="https://github.com/gbottlehead4-cmd/oxrmc-bridge" target="_blank" rel="noopener">Plugin source ↗</a>
+    </div>
+  </div>
+</section>
+
+<section id="tuning" class="alt">
+  <div class="wrap">
+    <h2>Fine-tuning &amp; smoothing</h2>
+    <p class="muted" style="max-width:720px;">It works as soon as it's installed, but a couple of OpenXR-MotionCompensation settings are worth knowing — especially if the view looks shaky. Use the plugin's <strong>Open OXRMC Config</strong> button to edit them, then reload OXRMC with <code>CTRL+SHIFT+L</code>.</p>
+    <div class="grid-2" style="margin-top:24px;">
+      <div class="card">
+        <h3>🩹 View shaky? Turn on the input stabilizer</h3>
+        <p class="muted">This is the #1 fix for a jittery horizon. In the config under <code>[input_stabilizer]</code> set <code>enabled = 1</code> and <code>strength = 0.5</code>. Higher = smoother but more latency. (OXRMC samples the tracker at ~600&nbsp;Hz and low-pass filters it.)</p>
+      </div>
+      <div class="card">
+        <h3>🎯 Telemetry vs Sensor smoothness</h3>
+        <p class="muted">Telemetry mode <em>estimates</em> tilt from in-game g-forces, so it's naturally a bit rougher. A mounted WitMotion sensor (Sensor mode) reads your rig's <em>actual</em> tilt and is far smoother. The stabilizer above helps both.</p>
+      </div>
+      <div class="card">
+        <h3>🎚️ Extra smoothing (optional)</h3>
+        <p class="muted">For more damping, raise <code>[rotation_filter]</code> and <code>[translation_filter]</code> <code>strength</code> from 0 toward ~0.1–0.3. Same trade-off as always: smoother motion, a little more latency. Leave at 0 if it already feels good.</p>
+      </div>
+      <div class="card">
+        <h3>▶️ Auto-start</h3>
+        <p class="muted">Auto-configure also sets <code>auto_activate = 1</code>, so compensation kicks in by itself after a 10-second countdown — no need to press <code>CTRL+INS</code> every session. You can still toggle it manually with <code>CTRL+INS</code> any time.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="donate">
+  <div class="wrap donate-box">
+    <h2>Free, and staying free</h2>
+    <p class="muted">I built this for my own rig and I'm sharing it because the sleeping-controller problem drove me nuts too. If it saved you the hassle (or your neck), a coffee keeps the updates coming. Totally optional — enjoy it either way.</p>
+    <a class="btn btn-kofi" style="margin-top:8px;" href="https://ko-fi.com/gidrux" target="_blank" rel="noopener">☕ Support on Ko-fi</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>OXRMC Bridge — free to use, modify, and share. Made by <strong>Gidrux</strong>.</div>
+    <div style="margin-top:10px;">
+      <a href="https://github.com/gbottlehead4-cmd/oxrmc-bridge" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/gbottlehead4-cmd/oxrmc-bridge/releases/latest" target="_blank" rel="noopener">Download</a>
+      <a href="https://ko-fi.com/gidrux" target="_blank" rel="noopener">Support</a>
+    </div>
+    <div style="margin-top:14px; font-size:.82rem; color:var(--muted); max-width:640px; margin-left:auto; margin-right:auto;">
+      As an Amazon Associate I earn from qualifying purchases. Hardware links on this site may be affiliate links — using them costs you nothing extra and helps keep the plugin free.
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

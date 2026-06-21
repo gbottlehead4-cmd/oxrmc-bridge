@@ -1,0 +1,8 @@
+*.exe
+*.dll
+*.pdb
+dist/
+
+# Internal docs — keep local, never publish
+CLAUDE.md
+HANDOFF.md
