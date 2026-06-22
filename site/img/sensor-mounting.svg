@@ -12,7 +12,7 @@
   <rect x="0" y="0" width="760" height="430" fill="#0c0f14"/>
 
   <!-- Title -->
-  <text x="30" y="34" fill="#e7edf5" font-size="20" font-weight="700">Recommended: mount the sensor FLAT (label up)</text>
+  <text x="30" y="34" fill="#e7edf5" font-size="20" font-weight="700">Recommended: mount the sensor FLAT (label up or down)</text>
   <text x="30" y="58" fill="#9aa7b8" font-size="14">Top-down view of your rig. Lay the sensor flat and point its printed X arrow toward the front.</text>
 
   <!-- ===== Rig platform (top-down) ===== -->

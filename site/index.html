@@ -521,7 +521,7 @@
         <h3>Mount it on the moving part of the rig</h3>
         <p>Lay the sensor <strong>flat, label facing up</strong>, fixed firmly to the part of the rig that tilts (seat frame or platform) so it can't wobble on its own. Point the printed <span class="mono">X</span> arrow toward the <strong>front (or rear)</strong> of the rig — see the diagram. The connector edge can face any direction; you fine-tune the exact facing in software next, so "flat" doesn't limit where on the rig it goes.</p>
         <ul>
-          <li><strong>Keep it flat — don't mount it on its side.</strong> A vertical mount pushes one tilt axis onto the sensor's drifting yaw axis, so an axis stops reading correctly. No flat spot? A small L-bracket or a flat tab (screw tabs, or strong VHB tape) makes one anywhere on the rig.</li>
+          <li><strong>Keep it flat — label up or down, just not on its side.</strong> Flat (including upside-down on the underside of the platform) keeps both axes reading. An on-edge / vertical mount instead pushes one tilt axis onto the sensor's drifting yaw axis, so that axis stops reading correctly. No flat spot? A small L-bracket or flat tab (screw tabs or strong VHB tape) makes one anywhere on the rig.</li>
           <li><strong>Keep it away from magnetic interference</strong> — motors, actuators, bass shakers and heavy power cables all throw the readings off.</li>
         </ul>
       </div>
@@ -538,7 +538,7 @@
         <p>Start a session — the plugin's <strong>Status</strong> shows the sensor as <span class="mono">COMx (active)</span> and the mode flips to <span class="pill sensor">Sensor</span> (or <strong>Blended</strong>). With the rig level and at rest, calibrate to zero it: <code>CTRL+DEL</code> in VR, or the plugin's <strong>Calibrate sensor</strong> button.</p>
         <ul>
           <li>Drive a lap and watch the live roll/pitch values respond to the rig.</li>
-          <li>Square it up in software: tilt the rig and watch the live values. Use <strong>Mounting mode</strong> (0/90/180/270°) and <strong>Yaw align</strong> to match the sensor's facing to your rig, and <strong>Invert Roll / Invert Pitch</strong> if an axis runs backwards — then re-zero. No need to physically re-mount.</li>
+          <li>Square it up in software: tilt the rig and watch the live values. Use <strong>Mounting mode</strong> (0/90/180/270°) and <strong>Yaw align</strong> to match the sensor's facing to your rig, and <strong>Invert Roll / Invert Pitch</strong> if an axis runs backwards — then re-zero. No need to physically re-mount. <span class="muted">Mounted upside-down underneath? Set Mounting mode to 180° (or both Inverts), then calibrate — it's handled.</span></li>
         </ul>
       </div>
       <div class="gs-shot">

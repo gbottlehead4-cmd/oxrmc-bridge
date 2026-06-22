@@ -416,6 +416,8 @@ namespace User.OXRMCBridge
         public void AdjustSensorYawOffset(double delta) { _sensorYawOffsetDeg = NormalizeDeg(_sensorYawOffsetDeg + delta); }
         public void SetSensorYawOffset(double val) { _sensorYawOffsetDeg = NormalizeDeg(val); }
         private static double NormalizeDeg(double d) { d = d % 360.0; if (d < 0) d += 360.0; return d; }
+        // Wrap a signed angle (degrees) into [-180, 180].
+        private static double WrapDeg180(double d) { d = (d + 180.0) % 360.0; if (d < 0) d += 360.0; return d - 180.0; }
 
         // Maps the calibrated raw sensor roll/pitch into the rig frame using the
         // mounting orientation (in-plane rotation) and the invert flags. Returns radians.
@@ -573,8 +575,11 @@ namespace User.OXRMCBridge
 
                                 lock (_sensorLock)
                                 {
-                                    _sensorRoll = rollDeg - _rollOffset;
-                                    _sensorPitch = pitchDeg - _pitchOffset;
+                                    // Wrap the calibrated delta to [-180,180] so the zero point can sit
+                                    // anywhere — including ~180° when the sensor is mounted upside down
+                                    // (label facing the floor) — without glitching as the rig crosses level.
+                                    _sensorRoll = WrapDeg180(rollDeg - _rollOffset);
+                                    _sensorPitch = WrapDeg180(pitchDeg - _pitchOffset);
                                     _sensorYaw = yawDeg;
                                     _sensorLastPacketTicks = DateTime.UtcNow.Ticks;
                                 }
