@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 430" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#ff5630"/>
+    </marker>
+    <marker id="arrowm" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#9aa7b8"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="30" y="34" fill="#e7edf5" font-size="20" font-weight="700">Recommended: mount the sensor FLAT (label up)</text>
+  <text x="30" y="58" fill="#9aa7b8" font-size="14">Top-down view of your rig. Lay the sensor flat and point its printed X arrow toward the front.</text>
+
+  <!-- ===== Rig platform (top-down) ===== -->
+  <rect x="60" y="92" width="300" height="290" rx="10" fill="#161c26" stroke="#5b6675" stroke-width="2"/>
+  <!-- seat hint -->
+  <rect x="150" y="150" width="120" height="180" rx="8" fill="none" stroke="#2c3542" stroke-width="1.5" stroke-dasharray="5 4"/>
+  <text x="210" y="248" fill="#3a4452" font-size="13" text-anchor="middle">seat</text>
+
+  <!-- FRONT marker -->
+  <text x="210" y="84" fill="#e7edf5" font-size="13" font-weight="700" text-anchor="middle">FRONT OF RIG</text>
+  <line x1="210" y1="92" x2="210" y2="74" stroke="#9aa7b8" stroke-width="2" marker-end="url(#arrowm)"/>
+  <text x="210" y="405" fill="#9aa7b8" font-size="12" text-anchor="middle">rear</text>
+
+  <!-- ===== Sensor on the platform ===== -->
+  <g transform="translate(210,250)">
+    <rect x="-52" y="-42" width="104" height="84" rx="9" fill="#0c0f14" stroke="#ff5630" stroke-width="2.5"/>
+    <text x="0" y="-20" fill="#3f7fd6" font-size="14" font-weight="700" text-anchor="middle">WIT</text>
+    <!-- Z up out of page -->
+    <circle cx="0" cy="6" r="6" fill="none" stroke="#9aa7b8" stroke-width="1.5"/>
+    <circle cx="0" cy="6" r="1.6" fill="#9aa7b8"/>
+    <text x="12" y="11" fill="#9aa7b8" font-size="11">Z (up)</text>
+    <!-- X arrow toward front (up) -->
+    <line x1="0" y1="-2" x2="0" y2="-78" stroke="#ff5630" stroke-width="3.5" marker-end="url(#arrow)"/>
+    <text x="8" y="-66" fill="#ff5630" font-size="14" font-weight="700">X → FRONT</text>
+    <!-- Y arrow to left -->
+    <line x1="-6" y1="6" x2="-86" y2="6" stroke="#9aa7b8" stroke-width="2.5" marker-end="url(#arrowm)"/>
+    <text x="-86" y="-3" fill="#9aa7b8" font-size="12">Y</text>
+  </g>
+
+  <text x="210" y="426" fill="#9aa7b8" font-size="11.5" text-anchor="middle">The connector edge can face any direction — you square it up in software.</text>
+
+  <!-- ===== Right column: the dial-in steps ===== -->
+  <text x="430" y="120" fill="#e7edf5" font-size="15" font-weight="700">Then square it up in the plugin:</text>
+
+  <g fill="#cdd6e2" font-size="13.5">
+    <circle cx="442" cy="152" r="13" fill="#ff5630"/><text x="442" y="157" fill="#fff" font-size="13" font-weight="700" text-anchor="middle">1</text>
+    <text x="466" y="150">Tilt the rig and watch the live</text>
+    <text x="466" y="169">Output Roll / Pitch values.</text>
+
+    <circle cx="442" cy="204" r="13" fill="#ff5630"/><text x="442" y="209" fill="#fff" font-size="13" font-weight="700" text-anchor="middle">2</text>
+    <text x="466" y="202">Set Mounting mode + Yaw align</text>
+    <text x="466" y="221">until they track the right way.</text>
+
+    <circle cx="442" cy="256" r="13" fill="#ff5630"/><text x="442" y="261" fill="#fff" font-size="13" font-weight="700" text-anchor="middle">3</text>
+    <text x="466" y="254">Invert Roll / Pitch if an axis</text>
+    <text x="466" y="273">runs backwards.</text>
+
+    <circle cx="442" cy="308" r="13" fill="#ff5630"/><text x="442" y="313" fill="#fff" font-size="13" font-weight="700" text-anchor="middle">4</text>
+    <text x="466" y="306">With the rig level, press</text>
+    <text x="466" y="325">Calibrate Sensor.</text>
+  </g>
+
+  <!-- caution about vertical -->
+  <rect x="430" y="346" width="300" height="66" rx="8" fill="rgba(255,207,77,0.08)" stroke="rgba(255,207,77,0.35)" stroke-width="1"/>
+  <text x="444" y="368" fill="#ffcf4d" font-size="12.5" font-weight="700">Avoid mounting it on its side</text>
+  <text x="444" y="387" fill="#9aa7b8" font-size="11.5">Vertical mounting pushes one tilt axis onto the</text>
+  <text x="444" y="403" fill="#9aa7b8" font-size="11.5">sensor's drifting yaw axis. Flat is reliable.</text>
+</svg>
