@@ -113,6 +113,10 @@ namespace User.OXRMCBridge
         {
             SimHub.Logging.Current.Info("OXRMCBridge: starting");
 
+            // Restore saved settings (mount mode, gains, rig dims, calibration, etc.)
+            // before touching the sensor, so the loaded calibration offset is in place.
+            LoadSettings();
+
             try
             {
                 _mmf = MemoryMappedFile.CreateOrOpen(MMF_NAME, MMF_SIZE);
@@ -361,6 +365,7 @@ namespace User.OXRMCBridge
         public void CycleMode()
         {
             _modeOverride = (_modeOverride + 1) % 3;
+            SaveSettings();
         }
         public string GetSensorStatus()
         {
@@ -377,9 +382,9 @@ namespace User.OXRMCBridge
         public double GetPitchGain() { return _pitchGain; }
         public double GetBlendAlpha() { return _blendAlpha; }
 
-        public void AdjustRollGain(double delta) { _rollGain = Math.Max(0, Math.Min(0.2, _rollGain + delta)); }
-        public void AdjustPitchGain(double delta) { _pitchGain = Math.Max(0, Math.Min(0.2, _pitchGain + delta)); }
-        public void AdjustBlendAlpha(double delta) { _blendAlpha = Math.Max(0, Math.Min(1.0, _blendAlpha + delta)); }
+        public void AdjustRollGain(double delta) { _rollGain = Math.Max(0, Math.Min(0.2, _rollGain + delta)); SaveSettings(); }
+        public void AdjustPitchGain(double delta) { _pitchGain = Math.Max(0, Math.Min(0.2, _pitchGain + delta)); SaveSettings(); }
+        public void AdjustBlendAlpha(double delta) { _blendAlpha = Math.Max(0, Math.Min(1.0, _blendAlpha + delta)); SaveSettings(); }
 
         // Rig dimension accessors
         public double GetRigLengthMm() { return _rigLengthMm; }
@@ -387,13 +392,13 @@ namespace User.OXRMCBridge
         public double GetStrokeMm() { return _strokeMm; }
         public int GetPostConfig() { return _postConfig; }
 
-        public void AdjustRigLength(double delta) { _rigLengthMm = Math.Max(100, Math.Min(3000, _rigLengthMm + delta)); }
-        public void AdjustRigWidth(double delta) { _rigWidthMm = Math.Max(100, Math.Min(3000, _rigWidthMm + delta)); }
-        public void AdjustStroke(double delta) { _strokeMm = Math.Max(5, Math.Min(500, _strokeMm + delta)); }
-        public void SetRigLength(double val) { _rigLengthMm = Math.Max(100, Math.Min(3000, val)); }
-        public void SetRigWidth(double val) { _rigWidthMm = Math.Max(100, Math.Min(3000, val)); }
-        public void SetStroke(double val) { _strokeMm = Math.Max(5, Math.Min(500, val)); }
-        public void CyclePostConfig() { _postConfig = _postConfig == 3 ? 4 : 3; }
+        public void AdjustRigLength(double delta) { _rigLengthMm = Math.Max(100, Math.Min(3000, _rigLengthMm + delta)); SaveSettings(); }
+        public void AdjustRigWidth(double delta) { _rigWidthMm = Math.Max(100, Math.Min(3000, _rigWidthMm + delta)); SaveSettings(); }
+        public void AdjustStroke(double delta) { _strokeMm = Math.Max(5, Math.Min(500, _strokeMm + delta)); SaveSettings(); }
+        public void SetRigLength(double val) { _rigLengthMm = Math.Max(100, Math.Min(3000, val)); SaveSettings(); }
+        public void SetRigWidth(double val) { _rigWidthMm = Math.Max(100, Math.Min(3000, val)); SaveSettings(); }
+        public void SetStroke(double val) { _strokeMm = Math.Max(5, Math.Min(500, val)); SaveSettings(); }
+        public void CyclePostConfig() { _postConfig = _postConfig == 3 ? 4 : 3; SaveSettings(); }
 
         public double GetCalculatedPitchDeg()
         {
@@ -415,20 +420,21 @@ namespace User.OXRMCBridge
         }
         public double GetOverridePitchDeg() { return _overridePitchDeg; }
         public double GetOverrideRollDeg() { return _overrideRollDeg; }
-        public void SetOverridePitch(double val) { _overridePitchDeg = Math.Max(0, Math.Min(30, val)); }
-        public void SetOverrideRoll(double val) { _overrideRollDeg = Math.Max(0, Math.Min(30, val)); }
-        public void ToggleInvertRoll() { _invertRoll = !_invertRoll; }
-        public void ToggleInvertPitch() { _invertPitch = !_invertPitch; }
+        public void SetOverridePitch(double val) { _overridePitchDeg = Math.Max(0, Math.Min(30, val)); SaveSettings(); }
+        public void SetOverrideRoll(double val) { _overrideRollDeg = Math.Max(0, Math.Min(30, val)); SaveSettings(); }
+        public void ToggleInvertRoll() { _invertRoll = !_invertRoll; SaveSettings(); }
+        public void ToggleInvertPitch() { _invertPitch = !_invertPitch; SaveSettings(); }
+        // Re-zero on the next sensor frame; the new offset is persisted from the sensor loop.
         public void CalibrateSensor() { _needsCalibration = true; }
 
         // Sensor mounting orientation
         public string GetMountModeName() { return MOUNT_NAMES[_mountMode]; }
         public string GetMountModeDescription() { return MOUNT_DESC[_mountMode]; }
         public int GetMountMode() { return _mountMode; }
-        public void CycleMountMode() { _mountMode = (_mountMode + 1) % MOUNT_NAMES.Length; }
+        public void CycleMountMode() { _mountMode = (_mountMode + 1) % MOUNT_NAMES.Length; SaveSettings(); }
         public double GetSensorYawOffsetDeg() { return _sensorYawOffsetDeg; }
-        public void AdjustSensorYawOffset(double delta) { _sensorYawOffsetDeg = NormalizeDeg(_sensorYawOffsetDeg + delta); }
-        public void SetSensorYawOffset(double val) { _sensorYawOffsetDeg = NormalizeDeg(val); }
+        public void AdjustSensorYawOffset(double delta) { _sensorYawOffsetDeg = NormalizeDeg(_sensorYawOffsetDeg + delta); SaveSettings(); }
+        public void SetSensorYawOffset(double val) { _sensorYawOffsetDeg = NormalizeDeg(val); SaveSettings(); }
         private static double NormalizeDeg(double d) { d = d % 360.0; if (d < 0) d += 360.0; return d; }
         // Wrap a signed angle (degrees) into [-180, 180].
         private static double WrapDeg180(double d) { d = (d + 180.0) % 360.0; if (d < 0) d += 360.0; return d - 180.0; }
@@ -585,6 +591,8 @@ namespace User.OXRMCBridge
                                     _pitchOffset = pitchDeg;
                                     _needsCalibration = false;
                                     SimHub.Logging.Current.Info("OXRMCBridge: sensor calibrated — roll offset " + rollDeg.ToString("F2") + " pitch offset " + pitchDeg.ToString("F2"));
+                                    // Persist the new zero so it survives a restart (no re-calibrate needed).
+                                    SaveSettings();
                                 }
 
                                 lock (_sensorLock)
@@ -714,12 +722,115 @@ namespace User.OXRMCBridge
             }
         }
 
+        // --- Settings persistence ---
+        // Saved to SimHub's PluginsData via ReadCommonSettings/SaveCommonSettings so
+        // every user choice (mount mode, gains, rig dimensions, calibration, ...) survives
+        // a SimHub restart. SaveSettings() is called after each change and from End().
+
+        // Unique key — SimHub's Common store is keyed by this exact string and is NOT
+        // namespaced per plugin, so a generic name like "GeneralSettings" could collide.
+        private const string SETTINGS_KEY = "OXRMCBridgeSettings";
+
+        private void LoadSettings()
+        {
+            try
+            {
+                OXRMCBridgeSettings s = this.ReadCommonSettings<OXRMCBridgeSettings>(SETTINGS_KEY, () => null);
+                if (s == null) return;
+
+                _modeOverride = (s.ModeOverride % 3 + 3) % 3;
+                _rollGain = Math.Max(0, Math.Min(0.2, s.RollGain));
+                _pitchGain = Math.Max(0, Math.Min(0.2, s.PitchGain));
+                _invertRoll = s.InvertRoll;
+                _invertPitch = s.InvertPitch;
+                _blendAlpha = Math.Max(0, Math.Min(1.0, s.BlendAlpha));
+                _mountMode = ((s.MountMode % MOUNT_NAMES.Length) + MOUNT_NAMES.Length) % MOUNT_NAMES.Length;
+                _sensorYawOffsetDeg = NormalizeDeg(s.SensorYawOffsetDeg);
+                _rigLengthMm = Math.Max(100, Math.Min(3000, s.RigLengthMm));
+                _rigWidthMm = Math.Max(100, Math.Min(3000, s.RigWidthMm));
+                _strokeMm = Math.Max(5, Math.Min(500, s.StrokeMm));
+                _postConfig = s.PostConfig == 3 ? 3 : 4;
+                _overridePitchDeg = Math.Max(0, Math.Min(30, s.OverridePitchDeg));
+                _overrideRollDeg = Math.Max(0, Math.Min(30, s.OverrideRollDeg));
+
+                // Reuse the saved calibration so the rig doesn't need re-zeroing every launch.
+                if (s.HasCalibration)
+                {
+                    _rollOffset = s.RollOffset;
+                    _pitchOffset = s.PitchOffset;
+                    _needsCalibration = false;
+                }
+
+                SimHub.Logging.Current.Info("OXRMCBridge: settings loaded (mount=" + GetMountModeName() + ", mode=" + GetMode() + ")");
+            }
+            catch (Exception ex)
+            {
+                SimHub.Logging.Current.Error("OXRMCBridge: LoadSettings failed: " + ex.Message);
+            }
+        }
+
+        public void SaveSettings()
+        {
+            try
+            {
+                OXRMCBridgeSettings s = new OXRMCBridgeSettings
+                {
+                    ModeOverride = _modeOverride,
+                    RollGain = _rollGain,
+                    PitchGain = _pitchGain,
+                    InvertRoll = _invertRoll,
+                    InvertPitch = _invertPitch,
+                    BlendAlpha = _blendAlpha,
+                    MountMode = _mountMode,
+                    SensorYawOffsetDeg = _sensorYawOffsetDeg,
+                    RigLengthMm = _rigLengthMm,
+                    RigWidthMm = _rigWidthMm,
+                    StrokeMm = _strokeMm,
+                    PostConfig = _postConfig,
+                    OverridePitchDeg = _overridePitchDeg,
+                    OverrideRollDeg = _overrideRollDeg,
+                    HasCalibration = !_needsCalibration,
+                    RollOffset = _rollOffset,
+                    PitchOffset = _pitchOffset,
+                };
+                this.SaveCommonSettings(SETTINGS_KEY, s);
+            }
+            catch (Exception ex)
+            {
+                SimHub.Logging.Current.Error("OXRMCBridge: SaveSettings failed: " + ex.Message);
+            }
+        }
+
         public void End(PluginManager pluginManager)
         {
             SimHub.Logging.Current.Info("OXRMCBridge: stopping");
+            SaveSettings();
             StopSensor();
             if (_accessor != null) { try { _accessor.Dispose(); } catch (Exception) { } }
             if (_mmf != null) { try { _mmf.Dispose(); } catch (Exception) { } }
         }
+    }
+
+    // Persisted settings (serialized by SimHub's ReadCommonSettings/SaveCommonSettings).
+    // Defaults here match the plugin's in-memory defaults so a fresh install behaves the same.
+    public class OXRMCBridgeSettings
+    {
+        public int ModeOverride = 0;
+        public double RollGain = 0.04;
+        public double PitchGain = 0.04;
+        public bool InvertRoll = false;
+        public bool InvertPitch = false;
+        public double BlendAlpha = 0.8;
+        public int MountMode = 0;
+        public double SensorYawOffsetDeg = 0;
+        public double RigLengthMm = 862;
+        public double RigWidthMm = 748;
+        public double StrokeMm = 50;
+        public int PostConfig = 4;
+        public double OverridePitchDeg = 0;
+        public double OverrideRollDeg = 0;
+        public bool HasCalibration = false;
+        public double RollOffset = 0;
+        public double PitchOffset = 0;
     }
 }
