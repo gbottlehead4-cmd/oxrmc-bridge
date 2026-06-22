@@ -530,19 +530,21 @@
       </div>
     </div>
 
-    <!-- 4. Confirm, zero, drive -->
+    <!-- 4. Square it up & calibrate -->
     <div class="guide-step flip">
       <div class="gs-text">
         <div class="gs-num">4</div>
-        <h3>Confirm, zero, and drive</h3>
-        <p>Start a session — the plugin's <strong>Status</strong> shows the sensor as <span class="mono">COMx (active)</span> and the mode flips to <span class="pill sensor">Sensor</span> (or <strong>Blended</strong>). With the rig level and at rest, calibrate to zero it: <code>CTRL+DEL</code> in VR, or the plugin's <strong>Calibrate sensor</strong> button.</p>
-        <ul>
-          <li>Drive a lap and watch the live roll/pitch values respond to the rig.</li>
-          <li>Square it up in software: tilt the rig and watch the live values. Use <strong>Mounting mode</strong> (0/90/180/270°) and <strong>Yaw align</strong> to match the sensor's facing to your rig, and <strong>Invert Roll / Invert Pitch</strong> if an axis runs backwards — then re-zero. No need to physically re-mount. <span class="muted">Mounted upside-down underneath? Set Mounting mode to 180° (or both Inverts), then calibrate — it's handled.</span></li>
-        </ul>
+        <h3>Square it up &amp; calibrate — don't overthink mounting</h3>
+        <p>Forget which way the wires point. You set the orientation <em>here</em>, by watching the plugin's <strong>Live Values</strong> while you move the rig. Start a session so the sensor shows <span class="mono">COMx (active)</span> and the mode flips to <span class="pill sensor">Sensor</span>.</p>
+        <ol class="steps">
+          <li>Tilt the rig <strong>forward / back</strong>. <strong>Output Pitch</strong> should move. If <strong>Output Roll</strong> moves instead, they're swapped — press <strong>Mounting mode</strong> until forward/back drives Pitch.</li>
+          <li>Watch direction: if an axis compensates <strong>backwards</strong>, press <strong>Invert Roll</strong> or <strong>Invert Pitch</strong>. <span class="muted">(Mounted upside-down underneath? That's usually both — or just set Mounting mode to 180°.)</span></li>
+          <li>Nudge <strong>Yaw align</strong> if the facing is slightly off.</li>
+          <li>With the rig <strong>level and still</strong>, press <strong>Calibrate Sensor</strong> (or <code>CTRL+DEL</code> in VR). Drive a lap to confirm the horizon stays put.</li>
+        </ol>
       </div>
       <div class="gs-shot">
-        <div class="shot"><img src="img/sensor-back.jpg" alt="WitMotion sensor back sticker confirming the WT901C-232 model"></div>
+        <div class="shot"><img src="img/sensor-live-values.png" alt="The plugin's Live Values panel with callouts: watch Output Roll/Pitch as you tilt the rig; use Invert to flip an axis that runs backwards"></div>
       </div>
     </div>
 
