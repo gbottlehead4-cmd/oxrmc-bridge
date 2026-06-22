@@ -166,6 +166,15 @@ Requires only the .NET Framework 4.8 C# compiler (included with Windows) and Sim
 - **Compensation direction wrong:** Use Invert Roll / Invert Pitch buttons
 - **Compensation too strong/weak (telemetry mode):** Adjust gain up/down
 
+## For motion-software developers
+
+OXRMC Bridge works by writing the `motionRigPose` shared-memory file that OXRMC
+reads as a `flypt` tracker. If your motion app already computes the rig's pose, you
+can write that file directly at your native rate instead of going through SimHub —
+no plugin, no 60 Hz cap, no change to OXRMC. See [docs/MMF_SPEC.md](docs/MMF_SPEC.md)
+for the exact layout and [docs/FlyptPoseWriter.cs](docs/FlyptPoseWriter.cs) for a
+drop-in reference writer.
+
 ## License
 
 **PolyForm Noncommercial License 1.0.0** — see [LICENSE.md](LICENSE.md).
