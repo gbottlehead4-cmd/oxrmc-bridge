@@ -68,6 +68,14 @@ namespace User.OXRMCBridge
         private double _pitchOffset;
         private bool _needsCalibration = true;
 
+        // Sensor mounting orientation — lets the sensor be fitted any way round.
+        // _mountMode gives a coarse 0/90/180/270° in-plane rotation; _sensorYawOffsetDeg
+        // is a fine "front" alignment trim added on top. Applied to the calibrated
+        // (already zeroed) roll/pitch, so changing it never needs a re-calibration.
+        private int _mountMode = 0;
+        private double _sensorYawOffsetDeg = 0;
+        private static readonly string[] MOUNT_NAMES = new string[] { "Standard (0°)", "Rotated 90°", "Rotated 180°", "Rotated 270°" };
+
         private MemoryMappedFile _mmf;
         private MemoryMappedViewAccessor _accessor;
         private readonly double[] _pose = new double[NUM_FIELDS];
@@ -128,6 +136,8 @@ namespace User.OXRMCBridge
             this.AttachDelegate("OXRMCBridge.BlendAlpha", () => _blendAlpha);
             this.AttachDelegate("OXRMCBridge.InvertRoll", () => _invertRoll);
             this.AttachDelegate("OXRMCBridge.InvertPitch", () => _invertPitch);
+            this.AttachDelegate("OXRMCBridge.MountMode", () => GetMountModeName());
+            this.AttachDelegate("OXRMCBridge.SensorYawOffsetDeg", () => _sensorYawOffsetDeg);
             this.AttachDelegate("OXRMCBridge.MaxPitchDeg", () => GetMaxPitchDeg());
             this.AttachDelegate("OXRMCBridge.MaxRollDeg", () => GetMaxRollDeg());
             this.AttachDelegate("OXRMCBridge.RigLengthMm", () => _rigLengthMm);
@@ -145,6 +155,9 @@ namespace User.OXRMCBridge
             this.AddAction("OXRMCBridge.ToggleInvertPitch", (a, b) => { ToggleInvertPitch(); });
             this.AddAction("OXRMCBridge.CalibrateSensor", (a, b) => { CalibrateSensor(); });
             this.AddAction("OXRMCBridge.ReconnectSensor", (a, b) => { ReconnectSensor(); });
+            this.AddAction("OXRMCBridge.CycleMountMode", (a, b) => { CycleMountMode(); });
+            this.AddAction("OXRMCBridge.SensorYawOffsetUp", (a, b) => { AdjustSensorYawOffset(5); });
+            this.AddAction("OXRMCBridge.SensorYawOffsetDown", (a, b) => { AdjustSensorYawOffset(-5); });
             this.AddAction("OXRMCBridge.CycleMode", (a, b) => { CycleMode(); });
             this.AddAction("OXRMCBridge.ConfigureOXRMC", (a, b) => { ConfigureOXRMC(); });
         }
@@ -396,6 +409,30 @@ namespace User.OXRMCBridge
         public void ToggleInvertPitch() { _invertPitch = !_invertPitch; }
         public void CalibrateSensor() { _needsCalibration = true; }
 
+        // Sensor mounting orientation
+        public string GetMountModeName() { return MOUNT_NAMES[_mountMode]; }
+        public void CycleMountMode() { _mountMode = (_mountMode + 1) % MOUNT_NAMES.Length; }
+        public double GetSensorYawOffsetDeg() { return _sensorYawOffsetDeg; }
+        public void AdjustSensorYawOffset(double delta) { _sensorYawOffsetDeg = NormalizeDeg(_sensorYawOffsetDeg + delta); }
+        public void SetSensorYawOffset(double val) { _sensorYawOffsetDeg = NormalizeDeg(val); }
+        private static double NormalizeDeg(double d) { d = d % 360.0; if (d < 0) d += 360.0; return d; }
+
+        // Maps the calibrated raw sensor roll/pitch into the rig frame using the
+        // mounting orientation (in-plane rotation) and the invert flags. Returns radians.
+        private void GetOrientedSensorRad(out double rollRad, out double pitchRad)
+        {
+            double sr, sp;
+            lock (_sensorLock) { sr = _sensorRoll; sp = _sensorPitch; }
+            double phi = (_mountMode * 90.0 + _sensorYawOffsetDeg) * Math.PI / 180.0;
+            double c = Math.Cos(phi), s = Math.Sin(phi);
+            double r = sr * c - sp * s;
+            double p = sr * s + sp * c;
+            if (_invertRoll) r = -r;
+            if (_invertPitch) p = -p;
+            rollRad = r * Math.PI / 180.0;
+            pitchRad = p * Math.PI / 180.0;
+        }
+
         // --- Sensor active check ---
 
         private bool IsSensorActive()
@@ -616,10 +653,8 @@ namespace User.OXRMCBridge
 
             if (effectiveMode == "BLENDED")
             {
-                double sr, sp;
-                lock (_sensorLock) { sr = _sensorRoll; sp = _sensorPitch; }
-                double sensorRollRad = sr * Math.PI / 180.0;
-                double sensorPitchRad = sp * Math.PI / 180.0;
+                double sensorRollRad, sensorPitchRad;
+                GetOrientedSensorRad(out sensorRollRad, out sensorPitchRad);
 
                 rollRad = _blendAlpha * sensorRollRad + (1.0 - _blendAlpha) * _smoothedRoll;
                 pitchRad = _blendAlpha * sensorPitchRad + (1.0 - _blendAlpha) * _smoothedPitch;
@@ -627,10 +662,7 @@ namespace User.OXRMCBridge
             else if (effectiveMode == "SENSOR")
             {
                 if (!sensorActive) return;
-                double sr, sp;
-                lock (_sensorLock) { sr = _sensorRoll; sp = _sensorPitch; }
-                rollRad = sr * Math.PI / 180.0;
-                pitchRad = sp * Math.PI / 180.0;
+                GetOrientedSensorRad(out rollRad, out pitchRad);
             }
             else
             {

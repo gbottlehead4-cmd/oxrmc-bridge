@@ -24,6 +24,8 @@ namespace User.OXRMCBridge
         private TextBlock _modeDescText;
         private TextBlock _maxPitchText;
         private TextBlock _maxRollText;
+        private TextBlock _mountText;
+        private TextBlock _yawText;
         private TextBox _overridePitchBox;
         private TextBox _overrideRollBox;
         private TextBox _rigLengthBox;
@@ -173,8 +175,38 @@ namespace User.OXRMCBridge
 
             // Sensor controls
             mainStack.Children.Add(CreateSectionHeader("Sensor"));
+
+            var sensorHelp = new TextBlock();
+            sensorHelp.Text = "Mount the sensor any way you like. Set the mounting mode and nudge the yaw alignment until Output Roll/Pitch move the right way when you tilt the rig, then press Calibrate Sensor with the rig level. Invert Roll/Pitch (above) also apply to the sensor.";
+            sensorHelp.Foreground = new SolidColorBrush(Color.FromRgb(140, 140, 140));
+            sensorHelp.TextWrapping = TextWrapping.Wrap;
+            sensorHelp.FontSize = 11;
+            sensorHelp.Margin = new Thickness(0, 0, 0, 8);
+            mainStack.Children.Add(sensorHelp);
+
+            // Mounting orientation: coarse mode + fine yaw alignment
+            var mountGrid = new Grid();
+            mountGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
+            mountGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            mountGrid.RowDefinitions.Add(new RowDefinition());
+            mountGrid.RowDefinitions.Add(new RowDefinition());
+
+            _mountText = CreateValueText("Standard (0°)");
+            var mountPanel = new StackPanel { Orientation = Orientation.Horizontal };
+            mountPanel.Children.Add(_mountText);
+            mountPanel.Children.Add(CreateButton("Change", (s, e) => _plugin.CycleMountMode()));
+            AddGridRow(mountGrid, 0, "Mounting mode:", mountPanel);
+
+            _yawText = CreateValueText("0°");
+            var yawPanel = new StackPanel { Orientation = Orientation.Horizontal };
+            yawPanel.Children.Add(_yawText);
+            yawPanel.Children.Add(CreateButton(" - ", (s, e) => _plugin.AdjustSensorYawOffset(-5)));
+            yawPanel.Children.Add(CreateButton(" + ", (s, e) => _plugin.AdjustSensorYawOffset(5)));
+            AddGridRow(mountGrid, 1, "Yaw align:", yawPanel);
+            mainStack.Children.Add(WrapInBorder(mountGrid));
+
             var sensorPanel = new StackPanel { Orientation = Orientation.Horizontal };
-            sensorPanel.Margin = new Thickness(0, 0, 0, 10);
+            sensorPanel.Margin = new Thickness(0, 6, 0, 10);
             sensorPanel.Children.Add(CreateButton("Calibrate Sensor", (s, e) => _plugin.CalibrateSensor()));
             sensorPanel.Children.Add(CreateButton("Reconnect Sensor", (s, e) => _plugin.ReconnectSensor()));
             mainStack.Children.Add(sensorPanel);
@@ -350,12 +382,14 @@ namespace User.OXRMCBridge
             _rollGainText.Text = _plugin.GetRollGain().ToString("F3");
             _pitchGainText.Text = _plugin.GetPitchGain().ToString("F3");
             _blendText.Text = ((int)(_plugin.GetBlendAlpha() * 100)).ToString() + "%";
+            _mountText.Text = _plugin.GetMountModeName();
+            _yawText.Text = _plugin.GetSensorYawOffsetDeg().ToString("F0") + "°";
             string modeSetting = _plugin.GetModeOverrideName();
             _overrideText.Text = modeSetting;
             if (modeSetting == "TELEMETRY")
                 _modeDescText.Text = "No sensor needed. Estimates rig position from in-game g-forces. Tune Roll/Pitch strength below to match your rig's feel.";
             else if (modeSetting == "SENSOR")
-                _modeDescText.Text = "Reads actual rig tilt from WitMotion sensor mounted on the rig. Most accurate — no tuning needed.";
+                _modeDescText.Text = "Reads actual rig tilt from the WitMotion sensor. Most accurate. Set the mounting mode / yaw align below so it matches your rig, then calibrate.";
             else
                 _modeDescText.Text = "Combines sensor + game data. Sensor gives accuracy, game data adds faster response. Best quality. Adjust blend weight below.";
             _postConfigText.Text = _plugin.GetPostConfig() + "-post";
