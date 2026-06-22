@@ -177,7 +177,7 @@ namespace User.OXRMCBridge
             mainStack.Children.Add(CreateSectionHeader("Sensor"));
 
             var sensorHelp = new TextBlock();
-            sensorHelp.Text = "Mount the sensor any way you like. Set the mounting mode and nudge the yaw alignment until Output Roll/Pitch move the right way when you tilt the rig, then press Calibrate Sensor with the rig level. Invert Roll/Pitch (above) also apply to the sensor.";
+            sensorHelp.Text = "Mount the sensor FLAT (label up) — not on its side. A vertical mount puts one tilt axis onto the sensor's drifting yaw axis, so that axis won't read correctly. The connector can face any direction: tilt the rig, watch Output Roll/Pitch, then set Mounting mode + Yaw align (and Invert Roll/Pitch above, which also apply to the sensor) until they track. Press Calibrate Sensor with the rig level.";
             sensorHelp.Foreground = new SolidColorBrush(Color.FromRgb(140, 140, 140));
             sensorHelp.TextWrapping = TextWrapping.Wrap;
             sensorHelp.FontSize = 11;
