@@ -70,8 +70,16 @@ namespace User.OXRMCBridge
             subtitle.Text = "Controller-free VR motion compensation for any motion rig. Uses WitMotion sensor, game telemetry, or both blended.";
             subtitle.Foreground = new SolidColorBrush(Color.FromRgb(160, 160, 160));
             subtitle.TextWrapping = TextWrapping.Wrap;
-            subtitle.Margin = new Thickness(0, 0, 0, 15);
+            subtitle.Margin = new Thickness(0, 0, 0, 4);
             mainStack.Children.Add(subtitle);
+
+            // Author credit
+            var credit = new TextBlock();
+            credit.Text = "Created by Gidrux  ·  free · ko-fi.com/gidrux";
+            credit.Foreground = new SolidColorBrush(Color.FromRgb(0, 180, 220));
+            credit.FontSize = 12;
+            credit.Margin = new Thickness(0, 0, 0, 15);
+            mainStack.Children.Add(credit);
 
             // Status section
             mainStack.Children.Add(CreateSectionHeader("Status"));
