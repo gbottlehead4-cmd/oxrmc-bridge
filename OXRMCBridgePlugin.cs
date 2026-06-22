@@ -74,7 +74,19 @@ namespace User.OXRMCBridge
         // (already zeroed) roll/pitch, so changing it never needs a re-calibration.
         private int _mountMode = 0;
         private double _sensorYawOffsetDeg = 0;
-        private static readonly string[] MOUNT_NAMES = new string[] { "Standard (0°)", "Rotated 90°", "Rotated 180°", "Rotated 270°" };
+        // Plain-language names so non-technical users can pick by how they physically fitted it.
+        private static readonly string[] MOUNT_NAMES = new string[] {
+            "Top · label UP, X to front",
+            "Label up, X to the right",
+            "Underneath · label DOWN, X to front",
+            "Label up, X to the left"
+        };
+        private static readonly string[] MOUNT_DESC = new string[] {
+            "Sensor on top of the rig, sticker facing up, the printed X arrow pointing toward the FRONT. (The usual way.)",
+            "Sensor flat, sticker up, but turned a quarter-turn so the X arrow points to the RIGHT.",
+            "Sensor underneath the platform, sticker facing the FLOOR, X arrow still toward the FRONT.",
+            "Sensor flat, sticker up, but turned a quarter-turn so the X arrow points to the LEFT."
+        };
 
         private MemoryMappedFile _mmf;
         private MemoryMappedViewAccessor _accessor;
@@ -411,6 +423,8 @@ namespace User.OXRMCBridge
 
         // Sensor mounting orientation
         public string GetMountModeName() { return MOUNT_NAMES[_mountMode]; }
+        public string GetMountModeDescription() { return MOUNT_DESC[_mountMode]; }
+        public int GetMountMode() { return _mountMode; }
         public void CycleMountMode() { _mountMode = (_mountMode + 1) % MOUNT_NAMES.Length; }
         public double GetSensorYawOffsetDeg() { return _sensorYawOffsetDeg; }
         public void AdjustSensorYawOffset(double delta) { _sensorYawOffsetDeg = NormalizeDeg(_sensorYawOffsetDeg + delta); }

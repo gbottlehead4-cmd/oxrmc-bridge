@@ -26,6 +26,9 @@ namespace User.OXRMCBridge
         private TextBlock _maxRollText;
         private TextBlock _mountText;
         private TextBlock _yawText;
+        private TextBlock _mountDescText;
+        private Border _mountDiagram;
+        private int _lastMountMode = -1;
         private TextBox _overridePitchBox;
         private TextBox _overrideRollBox;
         private TextBox _rigLengthBox;
@@ -185,33 +188,56 @@ namespace User.OXRMCBridge
             mainStack.Children.Add(CreateSectionHeader("Sensor"));
 
             var sensorHelp = new TextBlock();
-            sensorHelp.Text = "Mount the sensor FLAT (label up OR down) — not on its side — with the printed X arrow pointing along the rig (toward the front or rear), not sideways. Set Mounting mode: Standard for label-up, 180 for upside-down (under the platform). With the rig level and still, press Calibrate Sensor. Then drive — if the view compensates the wrong way on an axis, press Invert Roll or Invert Pitch. (You can't pre-test by hand; the rig only moves while driving.)";
+            sensorHelp.Text = "Pick the Mounting mode that matches how you fitted the sensor — the picture shows each one. Then, with the rig level and still, press Calibrate Sensor. Drive a lap: if the view leans the wrong way on an axis, press Invert Roll or Invert Pitch. (You can't pre-test by hand — the rig only moves while driving.)";
             sensorHelp.Foreground = new SolidColorBrush(Color.FromRgb(140, 140, 140));
             sensorHelp.TextWrapping = TextWrapping.Wrap;
             sensorHelp.FontSize = 11;
             sensorHelp.Margin = new Thickness(0, 0, 0, 8);
             mainStack.Children.Add(sensorHelp);
 
-            // Mounting orientation: coarse mode + fine yaw alignment
-            var mountGrid = new Grid();
-            mountGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
-            mountGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            mountGrid.RowDefinitions.Add(new RowDefinition());
-            mountGrid.RowDefinitions.Add(new RowDefinition());
+            // Mounting orientation: picture (left) + mode picker & description (right)
+            var mountLayout = new Grid();
+            mountLayout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(150) });
+            mountLayout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-            _mountText = CreateValueText("Standard (0°)");
-            var mountPanel = new StackPanel { Orientation = Orientation.Horizontal };
-            mountPanel.Children.Add(_mountText);
-            mountPanel.Children.Add(CreateButton("Change", (s, e) => _plugin.CycleMountMode()));
-            AddGridRow(mountGrid, 0, "Mounting mode:", mountPanel);
+            _mountDiagram = new Border();
+            _mountDiagram.Child = BuildMountDiagram(_plugin.GetMountMode());
+            _lastMountMode = _plugin.GetMountMode();
+            Grid.SetColumn(_mountDiagram, 0);
+            mountLayout.Children.Add(_mountDiagram);
 
+            var mountControls = new StackPanel { Margin = new Thickness(14, 0, 0, 0) };
+
+            var mountRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 4) };
+            mountRow.Children.Add(new TextBlock { Text = "Mounting mode", Foreground = new SolidColorBrush(Color.FromRgb(180, 180, 180)), VerticalAlignment = VerticalAlignment.Center, Width = 95 });
+            mountRow.Children.Add(CreateButton("Change", (s, e) => _plugin.CycleMountMode()));
+            mountControls.Children.Add(mountRow);
+
+            _mountText = CreateValueText("--");
+            _mountText.FontWeight = FontWeights.Bold;
+            _mountText.TextWrapping = TextWrapping.Wrap;
+            mountControls.Children.Add(_mountText);
+
+            _mountDescText = new TextBlock();
+            _mountDescText.Foreground = new SolidColorBrush(Color.FromRgb(150, 150, 150));
+            _mountDescText.TextWrapping = TextWrapping.Wrap;
+            _mountDescText.FontSize = 11;
+            _mountDescText.Margin = new Thickness(0, 4, 0, 8);
+            mountControls.Children.Add(_mountDescText);
+
+            var yawRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 0) };
+            yawRow.Children.Add(new TextBlock { Text = "Fine turn", Foreground = new SolidColorBrush(Color.FromRgb(180, 180, 180)), VerticalAlignment = VerticalAlignment.Center, Width = 95 });
             _yawText = CreateValueText("0°");
-            var yawPanel = new StackPanel { Orientation = Orientation.Horizontal };
-            yawPanel.Children.Add(_yawText);
-            yawPanel.Children.Add(CreateButton(" - ", (s, e) => _plugin.AdjustSensorYawOffset(-5)));
-            yawPanel.Children.Add(CreateButton(" + ", (s, e) => _plugin.AdjustSensorYawOffset(5)));
-            AddGridRow(mountGrid, 1, "Yaw align:", yawPanel);
-            mainStack.Children.Add(WrapInBorder(mountGrid));
+            yawRow.Children.Add(_yawText);
+            yawRow.Children.Add(CreateButton(" - ", (s, e) => _plugin.AdjustSensorYawOffset(-5)));
+            yawRow.Children.Add(CreateButton(" + ", (s, e) => _plugin.AdjustSensorYawOffset(5)));
+            mountControls.Children.Add(yawRow);
+            var yawNote = new TextBlock { Text = "Only if the sensor sits at a slight angle — nudge to line it up.", Foreground = new SolidColorBrush(Color.FromRgb(120, 120, 120)), FontSize = 10, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 0) };
+            mountControls.Children.Add(yawNote);
+
+            Grid.SetColumn(mountControls, 1);
+            mountLayout.Children.Add(mountControls);
+            mainStack.Children.Add(WrapInBorder(mountLayout));
 
             var sensorPanel = new StackPanel { Orientation = Orientation.Horizontal };
             sensorPanel.Margin = new Thickness(0, 6, 0, 10);
@@ -391,7 +417,14 @@ namespace User.OXRMCBridge
             _pitchGainText.Text = _plugin.GetPitchGain().ToString("F3");
             _blendText.Text = ((int)(_plugin.GetBlendAlpha() * 100)).ToString() + "%";
             _mountText.Text = _plugin.GetMountModeName();
+            _mountDescText.Text = _plugin.GetMountModeDescription();
             _yawText.Text = _plugin.GetSensorYawOffsetDeg().ToString("F0") + "°";
+            int curMount = _plugin.GetMountMode();
+            if (curMount != _lastMountMode)
+            {
+                _lastMountMode = curMount;
+                _mountDiagram.Child = BuildMountDiagram(curMount);
+            }
             string modeSetting = _plugin.GetModeOverrideName();
             _overrideText.Text = modeSetting;
             if (modeSetting == "TELEMETRY")
@@ -563,6 +596,62 @@ namespace User.OXRMCBridge
             }
 
             return canvas;
+        }
+
+        // Small picture of how the sensor sits for the chosen mounting mode.
+        private Canvas BuildMountDiagram(int mode)
+        {
+            var canvas = new Canvas();
+            canvas.Width = 150; canvas.Height = 150;
+
+            var gray = new SolidColorBrush(Color.FromRgb(120, 120, 120));
+            var dim = new SolidColorBrush(Color.FromRgb(200, 200, 200));
+            var accent = new SolidColorBrush(Color.FromRgb(255, 86, 48));
+            var darkFill = new SolidColorBrush(Color.FromRgb(20, 24, 30));
+
+            // Rig outline (top-down)
+            double rl = 22, rt = 30, rw = 106, rh = 90;
+            var rigRect = new Rectangle { Width = rw, Height = rh, Stroke = gray, StrokeThickness = 1.5 };
+            Canvas.SetLeft(rigRect, rl); Canvas.SetTop(rigRect, rt);
+            canvas.Children.Add(rigRect);
+
+            var frontLbl = new TextBlock { Text = "FRONT", Foreground = dim, FontSize = 9, FontWeight = FontWeights.Bold };
+            Canvas.SetLeft(frontLbl, rl + rw / 2 - 17); Canvas.SetTop(frontLbl, rt - 16);
+            canvas.Children.Add(frontLbl);
+            canvas.Children.Add(MkLine(rl + rw / 2, rt - 2, rl + rw / 2, rt - 13, dim, 1));
+
+            // Sensor box: solid = label up, dashed = label down (underneath)
+            double cx = rl + rw / 2, cy = rt + rh / 2;
+            double sw = 46, sh = 34;
+            bool labelDown = (mode == 2);
+            var sensor = new Rectangle { Width = sw, Height = sh, Stroke = accent, StrokeThickness = 2.5, Fill = darkFill, RadiusX = 6, RadiusY = 6 };
+            if (labelDown) sensor.StrokeDashArray = new DoubleCollection(new double[] { 3, 2 });
+            Canvas.SetLeft(sensor, cx - sw / 2); Canvas.SetTop(sensor, cy - sh / 2);
+            canvas.Children.Add(sensor);
+
+            // X arrow in the direction this mode points
+            double dx = 0, dy = -1;                 // modes 0 & 2 -> front
+            if (mode == 1) { dx = 1; dy = 0; }      // right
+            else if (mode == 3) { dx = -1; dy = 0; } // left
+            double len = 30, ex = cx + dx * len, ey = cy + dy * len;
+            double px = -dy, py = dx;               // perpendicular
+            canvas.Children.Add(MkLine(cx, cy, ex, ey, accent, 3));
+            canvas.Children.Add(MkLine(ex, ey, ex - dx * 8 + px * 5, ey - dy * 8 + py * 5, accent, 3));
+            canvas.Children.Add(MkLine(ex, ey, ex - dx * 8 - px * 5, ey - dy * 8 - py * 5, accent, 3));
+            var xlbl = new TextBlock { Text = "X", Foreground = accent, FontSize = 11, FontWeight = FontWeights.Bold };
+            Canvas.SetLeft(xlbl, ex + (dx > 0 ? 3 : (dx < 0 ? -13 : 3))); Canvas.SetTop(xlbl, ey + (dy < 0 ? -15 : -6));
+            canvas.Children.Add(xlbl);
+
+            var cap = new TextBlock { Text = labelDown ? "label DOWN (under rig)" : "label up (on top)", Foreground = dim, FontSize = 9, TextAlignment = TextAlignment.Center, Width = 150 };
+            Canvas.SetLeft(cap, 0); Canvas.SetTop(cap, rt + rh + 8);
+            canvas.Children.Add(cap);
+
+            return canvas;
+        }
+
+        private static Line MkLine(double x1, double y1, double x2, double y2, Brush b, double th)
+        {
+            return new Line { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Stroke = b, StrokeThickness = th };
         }
 
         private static void AddPost(Canvas canvas, double x, double y, string label, double r, Brush color)
