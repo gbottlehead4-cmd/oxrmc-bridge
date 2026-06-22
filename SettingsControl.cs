@@ -118,6 +118,14 @@ namespace User.OXRMCBridge
             AddGridRow(valGrid, 3, "Telemetry Pitch:", _telPitchText);
             mainStack.Children.Add(WrapInBorder(valGrid));
 
+            var liveExplain = new TextBlock();
+            liveExplain.Text = "Output = the angles actually sent to OXRMC (this is what matters). Telemetry = a rough guess from the game's g-forces, NOT the sensor — ignore it when you're using the sensor.";
+            liveExplain.Foreground = new SolidColorBrush(Color.FromRgb(150, 150, 150));
+            liveExplain.TextWrapping = TextWrapping.Wrap;
+            liveExplain.FontSize = 11;
+            liveExplain.Margin = new Thickness(0, 4, 0, 6);
+            mainStack.Children.Add(liveExplain);
+
             // Telemetry tuning
             mainStack.Children.Add(CreateSectionHeader("Telemetry Tuning"));
             var tuneDesc = new TextBlock();
@@ -177,7 +185,7 @@ namespace User.OXRMCBridge
             mainStack.Children.Add(CreateSectionHeader("Sensor"));
 
             var sensorHelp = new TextBlock();
-            sensorHelp.Text = "Mount the sensor FLAT (label up OR down) — not on its side. Don't worry which way the wires point; set orientation here using the Live Values above. 1) Tilt the rig forward/back: Output Pitch should move (if Roll moves, press Mounting mode until it does). 2) If an axis compensates backwards, press Invert Roll/Pitch (upside-down = both, or Mounting mode 180). 3) Nudge Yaw align if slightly off. 4) With the rig level and still, press Calibrate Sensor.";
+            sensorHelp.Text = "Mount the sensor FLAT (label up OR down) — not on its side — with the printed X arrow pointing along the rig (toward the front or rear), not sideways. Set Mounting mode: Standard for label-up, 180 for upside-down (under the platform). With the rig level and still, press Calibrate Sensor. Then drive — if the view compensates the wrong way on an axis, press Invert Roll or Invert Pitch. (You can't pre-test by hand; the rig only moves while driving.)";
             sensorHelp.Foreground = new SolidColorBrush(Color.FromRgb(140, 140, 140));
             sensorHelp.TextWrapping = TextWrapping.Wrap;
             sensorHelp.FontSize = 11;

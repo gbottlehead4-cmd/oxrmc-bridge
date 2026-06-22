@@ -530,21 +530,19 @@
       </div>
     </div>
 
-    <!-- 4. Square it up & calibrate -->
-    <div class="guide-step flip">
+    <!-- 4. Set the orientation & calibrate -->
+    <div class="guide-step" style="grid-template-columns:1fr;">
       <div class="gs-text">
         <div class="gs-num">4</div>
-        <h3>Square it up &amp; calibrate — don't overthink mounting</h3>
-        <p>Forget which way the wires point. You set the orientation <em>here</em>, by watching the plugin's <strong>Live Values</strong> while you move the rig. Start a session so the sensor shows <span class="mono">COMx (active)</span> and the mode flips to <span class="pill sensor">Sensor</span>.</p>
+        <h3>Set the orientation &amp; calibrate</h3>
+        <p>You can't test by tilting the rig by hand — it only moves while you drive. So set it from <em>how you mounted it</em>, then calibrate at rest:</p>
         <ol class="steps">
-          <li>Tilt the rig <strong>forward / back</strong>. <strong>Output Pitch</strong> should move. If <strong>Output Roll</strong> moves instead, they're swapped — press <strong>Mounting mode</strong> until forward/back drives Pitch.</li>
-          <li>Watch direction: if an axis compensates <strong>backwards</strong>, press <strong>Invert Roll</strong> or <strong>Invert Pitch</strong>. <span class="muted">(Mounted upside-down underneath? That's usually both — or just set Mounting mode to 180°.)</span></li>
-          <li>Nudge <strong>Yaw align</strong> if the facing is slightly off.</li>
-          <li>With the rig <strong>level and still</strong>, press <strong>Calibrate Sensor</strong> (or <code>CTRL+DEL</code> in VR). Drive a lap to confirm the horizon stays put.</li>
+          <li>Point the sensor's printed <strong>X arrow along the rig</strong> — toward the front or rear, not sideways.</li>
+          <li>Set <strong>Mounting mode</strong>: <strong>Standard</strong> for label-up, <strong>180°</strong> for upside-down (under the platform).</li>
+          <li>With the rig <strong>level and still</strong>, press <strong>Calibrate Sensor</strong> (or <code>CTRL+DEL</code> in VR).</li>
+          <li>Drive. If the view compensates the <strong>wrong way</strong> on an axis, press <strong>Invert Roll</strong> or <strong>Invert Pitch</strong>, then re-calibrate.</li>
         </ol>
-      </div>
-      <div class="gs-shot">
-        <div class="shot"><img src="img/sensor-live-values.png" alt="The plugin's Live Values panel with callouts: watch Output Roll/Pitch as you tilt the rig; use Invert to flip an axis that runs backwards"></div>
+        <p class="muted" style="margin-top:10px;">In the plugin, <strong>Output Roll/Pitch</strong> is what's sent to OXRMC; <strong>Telemetry Roll/Pitch</strong> is a game-based guess, not the sensor.</p>
       </div>
     </div>
 
