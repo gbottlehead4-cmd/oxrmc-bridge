@@ -168,4 +168,6 @@ Requires only the .NET Framework 4.8 C# compiler (included with Windows) and Sim
 
 ## License
 
-Free to use, modify, and share.
+**PolyForm Noncommercial License 1.0.0** — see [LICENSE.md](LICENSE.md).
+
+Free for any **noncommercial** use: you may use, modify, and share it at no cost. **You may not sell it or use it commercially** without permission. Copyright © 2026 Gidrux.
