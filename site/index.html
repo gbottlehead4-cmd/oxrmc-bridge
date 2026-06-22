@@ -204,6 +204,7 @@
       <a href="#how">How it works</a>
       <a href="#games">Games</a>
       <a href="#install">Setup guide</a>
+      <a href="#sensor">Sensor</a>
       <a href="#tuning">Tuning</a>
       <a href="#donate">Support</a>
       <a href="https://github.com/gbottlehead4-cmd/oxrmc-bridge" target="_blank" rel="noopener">GitHub</a>
@@ -426,6 +427,99 @@
       <a class="btn btn-primary" href="https://github.com/gbottlehead4-cmd/oxrmc-bridge/releases/latest" target="_blank" rel="noopener">⬇ Download plugin</a>
       <a class="btn btn-ghost" href="https://github.com/BuzzteeBear/OpenXR-MotionCompensation" target="_blank" rel="noopener">OpenXR-MotionCompensation ↗</a>
       <a class="btn btn-ghost" href="https://github.com/gbottlehead4-cmd/oxrmc-bridge" target="_blank" rel="noopener">Plugin source ↗</a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SENSOR (optional upgrade) ============ -->
+<section id="sensor">
+  <div class="wrap">
+    <h2>Add a WitMotion sensor <span class="pill sensor">Sensor mode</span></h2>
+    <p class="muted" style="max-width:760px;">Completely optional. The plugin already works with zero extra hardware in <span class="pill telemetry">Telemetry</span> mode, estimating tilt from in-game g-forces. Bolt a small sensor to your rig and it reads your platform's <em>real</em> tilt instead — noticeably smoother, and it never drifts out of sync with the action. The plugin auto-detects the sensor and switches over on its own.</p>
+
+    <div class="phase-label">Get the right one — they're not all the same</div>
+    <div class="grid-2" style="margin-top:8px;">
+      <div class="card">
+        <h3>WitMotion WT901C-232</h3>
+        <p class="muted">The wired <strong>RS232</strong> model. <strong>Not</strong> the TTL version, <strong>not</strong> the RS485 version, and <strong>not</strong> a Bluetooth (WT901BLE) one — those speak a different interface and the plugin's serial reader won't see them. The sticker on the back of yours should read <span class="mono">WT901C232</span>.</p>
+        <!-- TODO(Gidrux): replace href with your Amazon SiteStripe affiliate link once Associates is approved -->
+        <p style="margin-top:12px;"><a class="btn btn-ghost" href="https://www.amazon.com/s?k=WitMotion+WT901C-232" target="_blank" rel="noopener">Find on Amazon ↗</a></p>
+      </div>
+      <div class="card">
+        <h3>RS232 → USB adapter (CH340)</h3>
+        <p class="muted">A USB-to-serial adapter using the <strong>CH340</strong> chip — this is how the sensor plugs into your PC. WitMotion's matching one is labelled <span class="mono">USB-232</span>. Windows 10/11 usually installs the CH340 driver automatically.</p>
+        <!-- TODO(Gidrux): replace href with your Amazon SiteStripe affiliate link once Associates is approved -->
+        <p style="margin-top:12px;"><a class="btn btn-ghost" href="https://www.amazon.com/s?k=WitMotion+USB+RS232+CH340+cable" target="_blank" rel="noopener">Find on Amazon ↗</a></p>
+      </div>
+    </div>
+    <p class="muted" style="font-size:.84rem; margin-top:12px;">Hardware links may be affiliate links — see the note at the foot of the page.</p>
+
+    <!-- 1. Know your sensor -->
+    <div class="guide-step" style="margin-top:24px;">
+      <div class="gs-text">
+        <div class="gs-num">1</div>
+        <h3>Know your sensor</h3>
+        <p>Two faces and one edge matter. The <strong>label face</strong> carries the WIT logo and the printed <span class="mono">X / Y / Z</span> axes. The <strong>connector edge</strong> holds the 4-pin socket (<span class="mono">VCC · RX · TX · GND</span>) where the cable plugs in. The <strong>back</strong> has the model sticker — confirm it reads <span class="mono">WT901C232</span>.</p>
+      </div>
+      <div class="gs-shot">
+        <div class="shot"><img src="img/sensor-front.jpg" alt="WitMotion sensor front label face with printed X Y Z axes and the connector edge marked"></div>
+      </div>
+    </div>
+
+    <!-- 2. Wire it up -->
+    <div class="guide-step flip">
+      <div class="gs-text">
+        <div class="gs-num">2</div>
+        <h3>Wire it up</h3>
+        <p>Plug the 4-pin lead into the sensor's connector edge, then plug the adapter's USB-A end into your PC. That's the whole connection — the sensor is powered over USB, no batteries.</p>
+        <ul>
+          <li><strong>No COM port to choose:</strong> the plugin scans your serial ports at startup and finds the sensor by itself (9600 baud).</li>
+          <li>If nothing is detected, install the <strong>CH340</strong> driver, replug, and use the plugin's <strong>Reconnect sensor</strong> button.</li>
+        </ul>
+      </div>
+      <div class="gs-shot">
+        <div class="shot"><img src="img/sensor-cable.jpg" alt="WitMotion RS232 to USB adapter cable with CH340 chip"></div>
+      </div>
+    </div>
+
+    <!-- 3. Mount it -->
+    <div class="guide-step">
+      <div class="gs-text">
+        <div class="gs-num">3</div>
+        <h3>Mount it on the moving part of the rig</h3>
+        <p>Fix the sensor firmly to the part that actually tilts — the seat frame or platform — so it leans exactly as you do. Recommended orientation: <strong>label facing up</strong>, sitting flat and square, with the printed <span class="mono">X</span> arrow pointing toward the <strong>front (or rear)</strong> of the rig. That lines the sensor's roll/pitch up with your rig's.</p>
+        <ul>
+          <li><strong>Keep it away from magnetic interference</strong> — motors, actuators, bass shakers and heavy power cables all throw the readings off.</li>
+          <li>Use the two screw tabs, a bracket, or strong VHB tape. It must not be able to wobble independently of the rig.</li>
+        </ul>
+      </div>
+      <div class="gs-shot">
+        <div class="shot"><img src="img/sensor-connector.jpg" alt="WitMotion sensor connector side showing the 4-pin socket"></div>
+      </div>
+    </div>
+
+    <!-- 4. Confirm, zero, drive -->
+    <div class="guide-step flip">
+      <div class="gs-text">
+        <div class="gs-num">4</div>
+        <h3>Confirm, zero, and drive</h3>
+        <p>Start a session — the plugin's <strong>Status</strong> shows the sensor as <span class="mono">COMx (active)</span> and the mode flips to <span class="pill sensor">Sensor</span> (or <strong>Blended</strong>). With the rig level and at rest, calibrate to zero it: <code>CTRL+DEL</code> in VR, or the plugin's <strong>Calibrate sensor</strong> button.</p>
+        <ul>
+          <li>Drive a lap and watch the live roll/pitch values respond to the rig.</li>
+          <li>If an axis responds backwards or roll/pitch feel swapped, rotate the sensor on its mount (90° or 180°) and re-zero. <span class="muted">(The Invert Roll / Invert Pitch buttons apply to Telemetry &amp; Blended mode.)</span></li>
+        </ul>
+      </div>
+      <div class="gs-shot">
+        <div class="shot"><img src="img/sensor-back.jpg" alt="WitMotion sensor back sticker confirming the WT901C-232 model"></div>
+      </div>
+    </div>
+
+    <div class="note">
+      <div class="ic">🧲</div>
+      <div>
+        <h3>Magnetic interference is the #1 gotcha</h3>
+        <p class="muted" style="margin:0;">If readings wander or jump around, the sensor is almost always too close to a motor, actuator or bass shaker. Move it further away — or to a calmer spot on the frame — then re-zero.</p>
+      </div>
     </div>
   </div>
 </section>
