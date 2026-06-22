@@ -161,7 +161,7 @@ Requires only the .NET Framework 4.8 C# compiler (included with Windows) and Sim
 ## Troubleshooting
 
 - **MMF Reader shows zeros:** Make sure the plugin is enabled in SimHub's **Add/remove features**, and a game is running
-- **OXRMC not compensating:** Verify `type = flypt` in OXRMC config. In-game: CTRL+DEL to calibrate, CTRL+INS to activate
+- **OXRMC not compensating:** Verify `type = flypt` and `auto_activate = 1` in OXRMC config (the plugin's Auto-configure OXRMC button sets both). With auto-activate on, compensation starts by itself a few seconds after the sim loads. OXRMC's optional in-VR hotkeys: CTRL+D shows the centre-of-rotation overlay, CTRL+DEL re-centres/calibrates, CTRL+INS toggles compensation off/on (it's already on from auto-activate, so the first press turns it off)
 - **Sensor not detected:** Check COM port in Device Manager. Click Reconnect Sensor. Try different baud rate (edit BAUD_RATE in source)
 - **Compensation direction wrong:** Use Invert Roll / Invert Pitch buttons
 - **Compensation too strong/weak (telemetry mode):** Adjust gain up/down
