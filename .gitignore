@@ -2,6 +2,7 @@
 *.dll
 *.pdb
 dist/
+tools/*.csv
 
 # Internal docs — keep local, never publish
 CLAUDE.md
