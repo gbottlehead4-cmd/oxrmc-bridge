@@ -1,6 +1,6 @@
 # OXRMC Bridge — SimHub Plugin
 
-Controller-free VR motion compensation for the **Sigma Integrale DK2** motion rig.  
+Controller-free VR motion compensation for **any motion rig** — with a bonus **sensor-free** mode for **Sigma Integrale** rigs.  
 Writes rig pose data to the `motionRigPose` shared memory that **OpenXR-MotionCompensation (OXRMC)** reads, eliminating the need for a physical VR controller mounted on the rig.
 
 ## How it works
@@ -11,14 +11,23 @@ Game telemetry (via SimHub) ──┐
 WitMotion sensor (optional) ──┘
 ```
 
-The plugin has two modes with automatic switching:
+Pick the source that fits your rig (plus two blend modes):
 
 | Mode | Source | Accuracy | Requires |
 |------|--------|----------|----------|
 | **SENSOR** | WitMotion WT901C on the rig | High — actual physical tilt | Sensor + RS232-USB adapter |
-| **TELEMETRY** | Game g-forces via SimHub | Approximate — estimated from accelerations | Nothing extra |
+| **SIGMA** | The Sigma rig's own commanded motion | High — real pitch/roll, drift-free, no sensor | A Sigma Integrale rig; SimHub run as admin |
+| **TELEMETRY** | Game g-forces via SimHub | Rough estimate — see note below | Nothing extra |
+| **TEL+SENSOR** | Sensor blended with telemetry | — | Sensor |
+| **SIG+SENSOR** | Sigma blended with the sensor | — | Sigma rig + sensor |
 
-When a WitMotion sensor is detected, the plugin reads the rig's actual pitch and roll. If no sensor is connected (or it disconnects), it falls back to estimating rig position from game telemetry.
+**Why Telemetry is only a rough guess:** it estimates tilt from the game's raw g-forces, but your rig doesn't move on raw g-forces — motion software (Sigma's, SimHub's, anyone's) runs the data through its own profile first (washout, tilt-coordination, per-axis scaling, smoothing, travel limits). So the platform's real motion never matches the raw numbers. For accuracy use **SENSOR** (true physical tilt) or **SIGMA** (the rig's own commanded pose); Telemetry is the no-hardware fallback.
+
+### Sigma mode (sensor-free)
+
+On a **Sigma Integrale** rig the plugin can read the rig's own commanded pitch/roll directly — the exact motion the Sigma software sends to the platform — so you need no WitMotion sensor, and it's drift-free and full-rate. Works with any Sigma model (tuned on a DK2). In the plugin's **Sigma Integrale** section, click **Use Sigma Integrale**, set **Strength** to taste, and **Invert** an axis if it leans the wrong way. **Sigma + Sensor** blends it with a WitMotion sensor (adjustable Sensor weight).
+
+Requirements: **run SimHub as Administrator** (it reads the rig's local network stream via a raw socket), and start SimHub **before** loading the game. It only reads your own machine's traffic and never modifies any Sigma software.
 
 ## Supported games
 
@@ -180,3 +189,7 @@ drop-in reference writer.
 **PolyForm Noncommercial License 1.0.0** — see [LICENSE.md](LICENSE.md).
 
 Free for any **noncommercial** use: you may use, modify, and share it at no cost. **You may not sell it or use it commercially** without permission. Copyright © 2026 Gidrux.
+
+## Disclaimer
+
+Independent, unofficial project. **Not affiliated with, endorsed by, or supported by Sigma Integrale, WitMotion, OpenXR-MotionCompensation, or SimHub.** "Sigma Integrale", "WitMotion", "SimHub" and other product names are trademarks of their respective owners, used here only to describe compatibility. The Sigma mode only reads your own rig's motion on your own PC to feed OXRMC; it does not modify or replace any Sigma software.
