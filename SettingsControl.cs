@@ -20,6 +20,11 @@ namespace User.OXRMCBridge
         private TextBlock _blendText;
         private TextBlock _telRollText;
         private TextBlock _telPitchText;
+        private TextBlock _sigmaStatusText;
+        private TextBlock _sigmaGainText;
+        private TextBlock _sigmaBlendText;
+        private TextBlock _sigmaRollText;
+        private TextBlock _sigmaPitchText;
         private TextBlock _overrideText;
         private TextBlock _modeDescText;
         private TextBlock _maxPitchText;
@@ -109,6 +114,14 @@ namespace User.OXRMCBridge
             sensorRow.Children.Add(_sensorText);
             mainStack.Children.Add(sensorRow);
 
+            // Quick calibrate — handy up top so you can zero the moment the rig is level
+            var calibRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 8) };
+            var calibBtn = CreateButton("Calibrate level (zero sensor)", (s, e) => _plugin.CalibrateSensor());
+            calibBtn.ToolTip = "With the rig level and still, click to set the current sensor reading as zero. Used by Sensor, TEL+SENSOR and Sigma + Sensor modes. (Pure Sigma mode is zeroed by OXRMC instead — CTRL+DEL.)";
+            calibRow.Children.Add(calibBtn);
+            calibRow.Children.Add(new TextBlock { Text = "  rig level & still, then click", Foreground = new SolidColorBrush(Color.FromRgb(150, 150, 150)), FontSize = 11, VerticalAlignment = VerticalAlignment.Center });
+            mainStack.Children.Add(calibRow);
+
             // Live values
             mainStack.Children.Add(CreateSectionHeader("Live Values"));
             var valGrid = new Grid();
@@ -140,7 +153,7 @@ namespace User.OXRMCBridge
             // Telemetry tuning
             mainStack.Children.Add(CreateSectionHeader("Telemetry Tuning"));
             var tuneDesc = new TextBlock();
-            tuneDesc.Text = "How strongly the VR view reacts to in-game forces. Increase if compensation feels too weak, decrease if it feels too strong. Used in Telemetry and Blended modes.";
+            tuneDesc.Text = "IMPORTANT: Telemetry is only a rough guess from the game's g-forces — it is NOT accurate, because your rig applies its own motion profile (washout, tilt-coordination, limits), so the game forces never match what the rig actually does. For real accuracy use the WitMotion Sensor, or Sigma if you have a Sigma rig. These gains only affect Telemetry and TEL+SENSOR modes: increase if it feels too weak, decrease if too strong.";
             tuneDesc.Foreground = new SolidColorBrush(Color.FromRgb(140, 140, 140));
             tuneDesc.TextWrapping = TextWrapping.Wrap;
             tuneDesc.FontSize = 11;
@@ -175,9 +188,9 @@ namespace User.OXRMCBridge
             mainStack.Children.Add(WrapInBorder(gainGrid));
 
             // Blend controls
-            mainStack.Children.Add(CreateSectionHeader("Blend (sensor + telemetry)"));
+            mainStack.Children.Add(CreateSectionHeader("Blend — TEL+SENSOR mode only (Sensor + Telemetry)"));
             var blendInfo = new TextBlock();
-            blendInfo.Text = "When both sensor and game are active, blends both sources. 0% = pure telemetry, 100% = pure sensor.";
+            blendInfo.Text = "Used ONLY in TEL+SENSOR mode: mixes the WitMotion sensor with the game g-force estimate. 0% = pure telemetry, 100% = pure sensor. This does NOT affect Sigma — to mix Sigma with the sensor, use \"Sigma + Sensor\" and its own Sensor weight in the section above.";
             blendInfo.Foreground = new SolidColorBrush(Color.FromRgb(160, 160, 160));
             blendInfo.TextWrapping = TextWrapping.Wrap;
             blendInfo.Margin = new Thickness(0, 0, 0, 5);
@@ -191,6 +204,80 @@ namespace User.OXRMCBridge
             blendPanel.Children.Add(CreateButton(" - ", (s, e) => _plugin.AdjustBlendAlpha(-0.05)));
             blendPanel.Children.Add(CreateButton(" + ", (s, e) => _plugin.AdjustBlendAlpha(0.05)));
             mainStack.Children.Add(blendPanel);
+
+            // Sigma Integrale — sensor-free source from the rig's own controller stream
+            mainStack.Children.Add(CreateSectionHeader("Sigma Integrale — sensor-free"));
+            var sigmaDesc = new TextBlock();
+            sigmaDesc.Text = "For Sigma Integrale rigs (any model — reads the Sigma Simulation app's controller stream). Gets the rig's own commanded pitch & roll — no WitMotion sensor needed, drift-free and full rate. Start SimHub BEFORE loading the game. Requires running SimHub as Administrator (raw network capture). Tuned on a DK2; if the amount feels off on another Sigma model, adjust Strength, and if an axis leans the wrong way use Invert.";
+            sigmaDesc.Foreground = new SolidColorBrush(Color.FromRgb(140, 140, 140));
+            sigmaDesc.TextWrapping = TextWrapping.Wrap;
+            sigmaDesc.FontSize = 11;
+            sigmaDesc.Margin = new Thickness(0, 0, 0, 8);
+            mainStack.Children.Add(sigmaDesc);
+
+            var sigmaGrid = new Grid();
+            sigmaGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
+            sigmaGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            for (int i = 0; i < 5; i++) sigmaGrid.RowDefinitions.Add(new RowDefinition());
+
+            var sigmaEnablePanel = new StackPanel { Orientation = Orientation.Horizontal };
+            var useSigmaBtn = CreateButton("Use Sigma Integrale", (s, e) => _plugin.SetMode(3));
+            useSigmaBtn.ToolTip = "Sigma only — the rig's own commanded pitch/roll. Sensor not required.";
+            sigmaEnablePanel.Children.Add(useSigmaBtn);
+            var useBlendBtn = CreateButton("Sigma + Sensor", (s, e) => _plugin.SetMode(4));
+            useBlendBtn.ToolTip = "Blend the Sigma command with the WitMotion sensor. Set the sensor weight below.";
+            sigmaEnablePanel.Children.Add(useBlendBtn);
+            AddGridRow(sigmaGrid, 0, "Source:", sigmaEnablePanel);
+
+            _sigmaStatusText = CreateValueText("Not selected");
+            _sigmaStatusText.TextWrapping = TextWrapping.Wrap;
+            AddGridRow(sigmaGrid, 1, "Status:", _sigmaStatusText);
+
+            _sigmaGainText = CreateValueText("1.0");
+            var sigmaGainPanel = new StackPanel { Orientation = Orientation.Horizontal };
+            sigmaGainPanel.Children.Add(_sigmaGainText);
+            sigmaGainPanel.Children.Add(CreateButton(" - ", (s, e) => _plugin.AdjustSigmaGain(-0.1)));
+            sigmaGainPanel.Children.Add(CreateButton(" + ", (s, e) => _plugin.AdjustSigmaGain(0.1)));
+            var strengthRow = AddGridRow(sigmaGrid, 2, "Strength:", sigmaGainPanel);
+            strengthRow.ToolTip = "How much of the rig's tilt is sent to OXRMC. 1.0 = exact real angle; higher = stronger compensation, lower = gentler. Not an on/off — a multiplier.";
+
+            _sigmaRollText = CreateValueText("0.00°");
+            var sRollRow = AddGridRow(sigmaGrid, 3, "Sigma Roll:", _sigmaRollText);
+            sRollRow.ToolTip = "Live roll angle the plugin is reading from the Sigma stream right now (before Strength). Watch it move as you drive.";
+            _sigmaPitchText = CreateValueText("0.00°");
+            var sPitchRow = AddGridRow(sigmaGrid, 4, "Sigma Pitch:", _sigmaPitchText);
+            sPitchRow.ToolTip = "Live pitch angle from the Sigma stream (before Strength). Positive/negative = nose up/down as the rig tilts.";
+            mainStack.Children.Add(WrapInBorder(sigmaGrid));
+
+            var sigmaInvertPanel = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 2, 0, 6) };
+            sigmaInvertPanel.Children.Add(new TextBlock { Text = "Wrong way? ", Foreground = new SolidColorBrush(Color.FromRgb(180, 180, 180)), VerticalAlignment = VerticalAlignment.Center });
+            sigmaInvertPanel.Children.Add(CreateButton("Invert Roll", (s, e) => _plugin.ToggleInvertRoll()));
+            sigmaInvertPanel.Children.Add(CreateButton("Invert Pitch", (s, e) => _plugin.ToggleInvertPitch()));
+            mainStack.Children.Add(sigmaInvertPanel);
+
+            // Sigma + Sensor blend — its own labelled block so it's as visible as the TEL+SENSOR blend
+            mainStack.Children.Add(CreateSectionHeader("Sigma + Sensor blend"));
+            var sigmaBlendInfo = new TextBlock();
+            sigmaBlendInfo.Text = "Used only in Sigma + Sensor mode: mixes the drift-free Sigma command with the WitMotion sensor. 0% = pure Sigma, 100% = pure sensor.";
+            sigmaBlendInfo.Foreground = new SolidColorBrush(Color.FromRgb(160, 160, 160));
+            sigmaBlendInfo.TextWrapping = TextWrapping.Wrap;
+            sigmaBlendInfo.Margin = new Thickness(0, 0, 0, 5);
+            mainStack.Children.Add(sigmaBlendInfo);
+            var sigmaBlendRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 10) };
+            sigmaBlendRow.Children.Add(new TextBlock { Text = "Sensor weight: ", Foreground = new SolidColorBrush(Color.FromRgb(180, 180, 180)), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 5, 0) });
+            _sigmaBlendText = CreateValueText("50%");
+            sigmaBlendRow.Children.Add(_sigmaBlendText);
+            sigmaBlendRow.Children.Add(CreateButton(" - ", (s, e) => _plugin.AdjustSigmaSensorBlend(-0.05)));
+            sigmaBlendRow.Children.Add(CreateButton(" + ", (s, e) => _plugin.AdjustSigmaSensorBlend(0.05)));
+            mainStack.Children.Add(sigmaBlendRow);
+
+            var sigmaTune = new TextBlock();
+            sigmaTune.Text = "Sigma Roll / Pitch = the live tilt the plugin reads from the rig (the numbers should move as you drive). Strength scales how much of it is sent to OXRMC: 1.0 = the rig's true angle, raise to ~1.3 if compensation feels weak, lower if too strong. If an axis leans the wrong way, press Invert. Zero (level) is set by OXRMC's own calibration — CTRL+DEL with the rig level. \"Sigma + Sensor\" mixes the drift-free Sigma command with the WitMotion sensor; Sensor weight picks the balance (0% = all Sigma, 100% = all sensor). Rig Dimensions below don't affect Sigma — they're only a safety limit.";
+            sigmaTune.Foreground = new SolidColorBrush(Color.FromRgb(120, 120, 120));
+            sigmaTune.TextWrapping = TextWrapping.Wrap;
+            sigmaTune.FontSize = 10;
+            sigmaTune.Margin = new Thickness(0, 0, 0, 10);
+            mainStack.Children.Add(sigmaTune);
 
             // Sensor controls
             mainStack.Children.Add(CreateSectionHeader("Sensor"));
@@ -399,6 +486,15 @@ namespace User.OXRMCBridge
             toolsPanel.Children.Add(CreateButton("Open MMF Reader", (s, e) => LaunchMmfReader()));
             mainStack.Children.Add(toolsPanel);
 
+            // Trademark / affiliation disclaimer
+            var disclaimer = new TextBlock();
+            disclaimer.Text = "Independent, unofficial tool. Not affiliated with, endorsed by, or supported by Sigma Integrale, WitMotion, or OpenXR-MotionCompensation. \"Sigma Integrale\", \"WitMotion\" and other product names are trademarks of their respective owners, used here only to describe compatibility.";
+            disclaimer.Foreground = new SolidColorBrush(Color.FromRgb(110, 110, 110));
+            disclaimer.TextWrapping = TextWrapping.Wrap;
+            disclaimer.FontSize = 10;
+            disclaimer.Margin = new Thickness(0, 16, 0, 4);
+            mainStack.Children.Add(disclaimer);
+
             var scrollViewer = new ScrollViewer();
             scrollViewer.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
             scrollViewer.Content = mainStack;
@@ -409,10 +505,12 @@ namespace User.OXRMCBridge
         {
             string mode = _plugin.GetMode();
             _modeText.Text = mode;
-            if (mode == "BLENDED")
+            if (mode == "TEL+SENSOR")
                 _modeText.Foreground = new SolidColorBrush(Color.FromRgb(0, 180, 255));
             else if (mode == "SENSOR")
                 _modeText.Foreground = new SolidColorBrush(Color.FromRgb(0, 200, 80));
+            else if (mode == "SIGMA" || mode == "SIG+SENSOR")
+                _modeText.Foreground = new SolidColorBrush(Color.FromRgb(200, 120, 255));
             else
                 _modeText.Foreground = new SolidColorBrush(Color.FromRgb(255, 200, 0));
 
@@ -439,8 +537,18 @@ namespace User.OXRMCBridge
                 _modeDescText.Text = "No sensor needed. Estimates rig position from in-game g-forces. Tune Roll/Pitch strength below to match your rig's feel.";
             else if (modeSetting == "SENSOR")
                 _modeDescText.Text = "Reads actual rig tilt from the WitMotion sensor. Most accurate. Set the mounting mode / yaw align below so it matches your rig, then calibrate.";
+            else if (modeSetting == "SIGMA")
+                _modeDescText.Text = "Sigma Integrale rigs only. Reads the rig's own commanded pitch/roll from the Sigma app — no sensor, drift-free, full rate. Needs SimHub run as Administrator. See the Sigma Integrale section below.";
+            else if (modeSetting == "SIG+SENSOR")
+                _modeDescText.Text = "Blends the Sigma command with the WitMotion sensor. Set the Sensor weight in the Sigma Integrale section. Needs SimHub run as Administrator.";
             else
-                _modeDescText.Text = "Combines sensor + game data. Sensor gives accuracy, game data adds faster response. Best quality. Adjust blend weight below.";
+                _modeDescText.Text = "Mixes the WitMotion sensor with the game g-force estimate. Note: the telemetry estimate is only a rough guess and does NOT match your rig — for accuracy use pure Sensor (or Sigma). Set the blend weight below.";
+
+            _sigmaStatusText.Text = _plugin.GetSigmaStatus();
+            _sigmaGainText.Text = _plugin.GetSigmaGain().ToString("F1");
+            _sigmaBlendText.Text = ((int)(_plugin.GetSigmaSensorBlend() * 100)).ToString() + "%";
+            _sigmaRollText.Text = _plugin.GetSigmaRollDeg().ToString("F2") + "°";
+            _sigmaPitchText.Text = _plugin.GetSigmaPitchDeg().ToString("F2") + "°";
             _postConfigText.Text = _plugin.GetPostConfig() + "-post";
             if (!_rigLengthBox.IsFocused) _rigLengthBox.Text = _plugin.GetRigLengthMm().ToString("F0");
             if (!_rigWidthBox.IsFocused) _rigWidthBox.Text = _plugin.GetRigWidthMm().ToString("F0");
@@ -782,7 +890,7 @@ namespace User.OXRMCBridge
             return btn;
         }
 
-        private static void AddGridRow(Grid grid, int row, string label, UIElement value)
+        private static TextBlock AddGridRow(Grid grid, int row, string label, UIElement value)
         {
             var lb = new TextBlock();
             lb.Text = label;
@@ -796,6 +904,7 @@ namespace User.OXRMCBridge
             Grid.SetRow(value, row);
             Grid.SetColumn(value, 1);
             grid.Children.Add(value);
+            return lb;
         }
 
         private static Border WrapInBorder(UIElement content)

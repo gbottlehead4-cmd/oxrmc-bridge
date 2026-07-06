@@ -176,6 +176,7 @@
     padding: 3px 10px; border-radius: 999px; text-transform: uppercase; }
   .pill.sensor { background: rgba(43,213,118,.14); color: var(--good); border: 1px solid rgba(43,213,118,.35); }
   .pill.telemetry { background: rgba(255,207,77,.12); color: var(--warn); border: 1px solid rgba(255,207,77,.35); }
+  .pill.sigma { background: rgba(178,120,255,.14); color: #b278ff; border: 1px solid rgba(178,120,255,.4); }
 
   table { width: 100%; border-collapse: collapse; margin-top: 8px; }
   th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
@@ -236,6 +237,7 @@
       <a href="#games">Games</a>
       <a href="#install">Setup guide</a>
       <a href="#sensor">Sensor</a>
+      <a href="#sigma">Sigma</a>
       <a href="#tuning">Tuning</a>
       <a href="#donate">Support</a>
       <a href="https://github.com/gbottlehead4-cmd/oxrmc-bridge" target="_blank" rel="noopener">GitHub</a>
@@ -286,7 +288,7 @@
 <section id="how" class="alt">
   <div class="wrap">
     <h2>How it works</h2>
-    <p class="muted" style="max-width:680px;">Two modes, automatic switching. Plug in a sensor for true physical accuracy, or run it with zero extra hardware off your game's telemetry.</p>
+    <p class="muted" style="max-width:680px;">Pick the source that fits your rig. Best accuracy from a mounted sensor or — on a Sigma Integrale rig — straight from the rig's own motion, with zero extra hardware. Telemetry works everywhere with nothing to buy.</p>
     <table>
       <thead>
         <tr><th>Mode</th><th>Source</th><th>Accuracy</th><th>Requires</th></tr>
@@ -299,14 +301,28 @@
           <td>WitMotion WT901C-RS232 + USB adapter</td>
         </tr>
         <tr>
+          <td><span class="pill sigma">Sigma</span></td>
+          <td>Your Sigma Integrale rig's own commanded motion</td>
+          <td>High — the rig's real pitch &amp; roll, drift-free, no sensor</td>
+          <td>A Sigma Integrale rig; SimHub run as admin</td>
+        </tr>
+        <tr>
           <td><span class="pill telemetry">Telemetry</span></td>
           <td>Game g-forces via SimHub</td>
-          <td>Approximate — estimated from accelerations</td>
+          <td>Rough estimate — see note below</td>
           <td>Nothing extra</td>
         </tr>
       </tbody>
     </table>
-    <p class="muted" style="margin-top:16px;">When a sensor is connected, the plugin reads the rig's real pitch and roll. If there's no sensor (or it disconnects), it automatically falls back to estimating rig motion from the game. Either way it writes to the <code>motionRigPose</code> shared memory that OXRMC reads with <code>type = flypt</code>.</p>
+    <p class="muted" style="margin-top:16px;">The plugin reads your rig's pitch and roll from whichever source you choose, and can also <strong>blend</strong> the sensor with either telemetry or Sigma. Everything writes to the <code>motionRigPose</code> shared memory that OXRMC reads with <code>type = flypt</code>.</p>
+
+    <div class="note">
+      <div class="ic">⚠️</div>
+      <div>
+        <h3>Why Telemetry is only a rough guess</h3>
+        <p class="muted" style="margin:0;">Telemetry estimates tilt from the game's raw g-forces — but your rig doesn't move on raw g-forces. Motion software (Sigma's, SimHub's, anyone's) runs the game data through its own profile first: washout, tilt-coordination, per-axis scaling, smoothing and travel limits, all adjustable. So what the platform actually does never matches the raw numbers. That's exactly why the <strong>Sensor</strong> (true physical tilt) and <strong>Sigma</strong> (the rig's own commanded pose) modes are accurate, and telemetry is only a no-hardware fallback.</p>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -558,6 +574,43 @@
   </div>
 </section>
 
+<!-- ============ SIGMA INTEGRALE (sensor-free) ============ -->
+<section id="sigma">
+  <div class="wrap">
+    <h2>Sigma Integrale rig? Skip the sensor <span class="pill sigma">Sigma mode</span></h2>
+    <p class="muted" style="max-width:780px;">If you run a <strong>Sigma Integrale</strong> motion rig, the plugin can read the rig's <em>own</em> commanded pitch and roll directly — the exact motion the Sigma software is telling the platform to make. No WitMotion sensor to buy or mount, no drift, and it updates at full rate. It's the same accuracy as a sensor, with nothing extra bolted on.</p>
+
+    <div class="grid-2" style="margin-top:24px;">
+      <div class="card">
+        <h3>What you get</h3>
+        <ul class="muted" style="margin:0; padding-left:18px;">
+          <li><strong>No sensor needed</strong> — zero extra hardware or wiring</li>
+          <li><strong>Drift-free</strong> — it's the rig's commanded pose, not an estimate</li>
+          <li><strong>Full rate</strong>, and always in sync with the platform</li>
+          <li>Works with any Sigma Integrale model (tuned on a DK2)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>How to turn it on</h3>
+        <ul class="muted" style="margin:0; padding-left:18px;">
+          <li>Run <strong>SimHub as Administrator</strong>, and start it <em>before</em> loading the game</li>
+          <li>In the plugin, open the <strong>Sigma Integrale</strong> section and click <strong>Use Sigma Integrale</strong></li>
+          <li>Tune <strong>Strength</strong> to taste; if an axis leans the wrong way, hit <strong>Invert</strong></li>
+          <li>Prefer a mix? <strong>Sigma + Sensor</strong> blends it with a WitMotion sensor</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="note">
+      <div class="ic">🔌</div>
+      <div>
+        <h3>Independent &amp; unofficial</h3>
+        <p class="muted" style="margin:0;">This is a community tool — not affiliated with, endorsed by, or supported by Sigma Integrale. It only <em>reads</em> your own rig's motion on your own PC to feed OpenXR-MotionCompensation; it doesn't modify or replace any Sigma software, which still does all the driving. "Sigma Integrale" is a trademark of its owner, used here only to describe compatibility.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section id="tuning" class="alt">
   <div class="wrap">
     <h2>Fine-tuning &amp; smoothing</h2>
@@ -568,8 +621,8 @@
         <p class="muted">This is the #1 fix for a jittery horizon. In the config under <code>[input_stabilizer]</code> set <code>enabled = 1</code> and <code>strength = 0.5</code>. Higher = smoother but more latency. (OXRMC samples the tracker at ~600&nbsp;Hz and low-pass filters it.)</p>
       </div>
       <div class="card">
-        <h3>🎯 Telemetry vs Sensor smoothness</h3>
-        <p class="muted">Telemetry mode <em>estimates</em> tilt from in-game g-forces, so it's naturally a bit rougher. A mounted WitMotion sensor (Sensor mode) reads your rig's <em>actual</em> tilt and is far smoother. The stabilizer above helps both.</p>
+        <h3>🎯 Pick an accurate source</h3>
+        <p class="muted">Telemetry only <em>estimates</em> tilt from raw g-forces — but your rig reshapes that data with its own motion profile (washout, limits, scaling), so it never quite matches. For accuracy use <span class="pill sensor">Sensor</span> (true physical tilt) or, on a Sigma rig, <span class="pill sigma">Sigma</span> (the rig's own commanded pose). Both are smoother and correct; the stabilizer above helps any mode.</p>
       </div>
       <div class="card">
         <h3>🎚️ Extra smoothing (optional)</h3>
@@ -602,6 +655,9 @@
     </div>
     <div style="margin-top:14px; font-size:.82rem; color:var(--muted); max-width:640px; margin-left:auto; margin-right:auto;">
       As an Amazon Associate I earn from qualifying purchases. Hardware links on this site may be affiliate links — using them costs you nothing extra and helps keep the plugin free.
+    </div>
+    <div style="margin-top:12px; font-size:.8rem; color:var(--muted); max-width:680px; margin-left:auto; margin-right:auto;">
+      Independent, unofficial project. Not affiliated with, endorsed by, or supported by Sigma Integrale, WitMotion, OpenXR-MotionCompensation, or SimHub. "Sigma Integrale", "WitMotion", "SimHub" and other names are trademarks of their respective owners, used only to describe compatibility.
     </div>
   </div>
 </footer>

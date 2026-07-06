@@ -5,6 +5,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.IO.Ports;
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using System.Threading;
 using System.Windows.Media;
 
@@ -47,8 +50,33 @@ namespace User.OXRMCBridge
         // 0.0 = 100% telemetry, 1.0 = 100% sensor. Default 0.8 = sensor-dominant with telemetry for fast response.
         private double _blendAlpha = 0.8;
 
-        // Mode: 0=TELEMETRY, 1=SENSOR, 2=BLENDED
+        // Mode: 0=TELEMETRY, 1=SENSOR, 2=TEL+SENSOR, 3=SIGMA
         private int _modeOverride = 0;
+
+        // --- Sigma Integrale source ---
+        // Reads the rig's own commanded pitch/roll from the Sigma motion software's
+        // stream on the local rig network and feeds it to OXRMC. Interop only, on the
+        // user's own hardware — it reads, never modifies. No sensor, drift-free, full
+        // rate. The raw socket needs SimHub to run as Administrator. Not affiliated
+        // with or endorsed by Sigma Integrale.
+        private const int SIGMA_PORT = 2222;
+        private const int SIGMA_FRAME_LEN = 97;
+        private const byte SIGMA_FRAME_TYPE = 0x02;
+        private const int SIGMA_PITCH_OFF = 8;
+        private const int SIGMA_ROLL_OFF = 12;
+        private const double SIGMA_PITCH_RAD_PER_COUNT = -6.25e-11;
+        private const double SIGMA_ROLL_RAD_PER_COUNT = -6.21e-11;
+        private Socket _sigmaSocket;
+        private Thread _sigmaThread;
+        private volatile bool _sigmaRunning;
+        private volatile bool _sigmaConnected;
+        private long _sigmaLastPacketTicks;
+        private readonly object _sigmaLock = new object();
+        private double _sigmaRollRad;   // decoded, pre gain/invert
+        private double _sigmaPitchRad;
+        private double _sigmaGain = 1.0;
+        private double _sigmaSensorBlend = 0.5;  // SIG+SENSOR mode: sensor weight (0=all Sigma, 1=all sensor)
+        private string _sigmaStatus = "";  // last error / state for the UI
 
         // --- WitMotion sensor ---
         private SerialPort _serial;
@@ -138,6 +166,9 @@ namespace User.OXRMCBridge
                 SimHub.Logging.Current.Info("OXRMCBridge: no WitMotion sensor found, using telemetry fallback");
             }
 
+            // If the saved mode is SIGMA, start its reader now.
+            EnsureSigmaState();
+
             this.AttachDelegate("OXRMCBridge.SensorConnected", () => _sensorConnected);
             this.AttachDelegate("OXRMCBridge.SensorPort", () => _comPort.Length > 0 ? _comPort : "none");
             this.AttachDelegate("OXRMCBridge.Mode", () => GetMode());
@@ -160,7 +191,13 @@ namespace User.OXRMCBridge
             this.AttachDelegate("OXRMCBridge.RigWidthMm", () => _rigWidthMm);
             this.AttachDelegate("OXRMCBridge.StrokeMm", () => _strokeMm);
             this.AttachDelegate("OXRMCBridge.PostConfig", () => _postConfig);
+            this.AttachDelegate("OXRMCBridge.SigmaConnected", () => IsSigmaActive());
+            this.AttachDelegate("OXRMCBridge.SigmaRollDeg", () => GetSigmaRollDeg());
+            this.AttachDelegate("OXRMCBridge.SigmaPitchDeg", () => GetSigmaPitchDeg());
+            this.AttachDelegate("OXRMCBridge.SigmaGain", () => _sigmaGain);
 
+            this.AddAction("OXRMCBridge.SigmaGainUp", (a, b) => { AdjustSigmaGain(0.1); });
+            this.AddAction("OXRMCBridge.SigmaGainDown", (a, b) => { AdjustSigmaGain(-0.1); });
             this.AddAction("OXRMCBridge.RollGainUp", (a, b) => { AdjustRollGain(0.005); });
             this.AddAction("OXRMCBridge.RollGainDown", (a, b) => { AdjustRollGain(-0.005); });
             this.AddAction("OXRMCBridge.PitchGainUp", (a, b) => { AdjustPitchGain(0.005); });
@@ -350,7 +387,7 @@ namespace User.OXRMCBridge
 
         // --- Public methods for the settings UI ---
 
-        private static readonly string[] MODE_NAMES = new string[] { "TELEMETRY", "SENSOR", "BLENDED" };
+        private static readonly string[] MODE_NAMES = new string[] { "TELEMETRY", "SENSOR", "TEL+SENSOR", "SIGMA", "SIG+SENSOR" };
 
         public string GetMode()
         {
@@ -364,9 +401,19 @@ namespace User.OXRMCBridge
 
         public void CycleMode()
         {
-            _modeOverride = (_modeOverride + 1) % 3;
+            _modeOverride = (_modeOverride + 1) % MODE_NAMES.Length;
+            EnsureSigmaState();
             SaveSettings();
         }
+
+        // Select a mode directly (used by the "Use Sigma Integrale" button).
+        public void SetMode(int mode)
+        {
+            _modeOverride = ((mode % MODE_NAMES.Length) + MODE_NAMES.Length) % MODE_NAMES.Length;
+            EnsureSigmaState();
+            SaveSettings();
+        }
+        public int GetModeIndex() { return _modeOverride; }
         public string GetSensorStatus()
         {
             if (_comPort.Length == 0) return "Not detected";
@@ -624,6 +671,132 @@ namespace User.OXRMCBridge
             }
         }
 
+        // --- Sigma Integrale reader ---
+
+        // Start the reader iff SIGMA mode is selected; stop it otherwise. Safe to
+        // call repeatedly (from Init, mode changes, End).
+        private void EnsureSigmaState()
+        {
+            string m = MODE_NAMES[_modeOverride];
+            bool want = m == "SIGMA" || m == "SIG+SENSOR";
+            if (want && !_sigmaRunning) StartSigma();
+            else if (!want && _sigmaRunning) StopSigma();
+        }
+
+        private static string AutoBindSigmaIp()
+        {
+            foreach (NetworkInterface ni in NetworkInterface.GetAllNetworkInterfaces())
+                foreach (UnicastIPAddressInformation ua in ni.GetIPProperties().UnicastAddresses)
+                    if (ua.Address.AddressFamily == AddressFamily.InterNetwork &&
+                        ua.Address.ToString().StartsWith("192.168.153."))
+                        return ua.Address.ToString();
+            return null;
+        }
+
+        private void StartSigma()
+        {
+            string bindIp = AutoBindSigmaIp();
+            if (bindIp == null)
+            {
+                _sigmaStatus = "No Sigma controller adapter (192.168.153.x) found. Power the rig on.";
+                SimHub.Logging.Current.Info("OXRMCBridge: Sigma — no 192.168.153.x adapter");
+                return;
+            }
+            try
+            {
+                _sigmaSocket = new Socket(AddressFamily.InterNetwork, SocketType.Raw, ProtocolType.IP);
+                _sigmaSocket.Bind(new IPEndPoint(IPAddress.Parse(bindIp), 0));
+                _sigmaSocket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.HeaderIncluded, true);
+                _sigmaSocket.IOControl(IOControlCode.ReceiveAll, new byte[] { 1, 0, 0, 0 }, new byte[4]);
+            }
+            catch (SocketException ex)
+            {
+                _sigmaStatus = "Run SimHub as Administrator (raw network capture needs it).";
+                SimHub.Logging.Current.Error("OXRMCBridge: Sigma raw socket failed (" + ex.Message + ") — needs admin");
+                if (_sigmaSocket != null) { try { _sigmaSocket.Close(); } catch (Exception) { } _sigmaSocket = null; }
+                return;
+            }
+            _sigmaStatus = "Listening on " + bindIp + " — drive to see motion.";
+            _sigmaRunning = true;
+            _sigmaThread = new Thread(SigmaLoop) { IsBackground = true };
+            _sigmaThread.Start();
+            SimHub.Logging.Current.Info("OXRMCBridge: Sigma reader started on " + bindIp);
+        }
+
+        private void StopSigma()
+        {
+            _sigmaRunning = false;
+            if (_sigmaSocket != null)
+            {
+                try { _sigmaSocket.Close(); } catch (Exception) { }  // unblocks Receive()
+                _sigmaSocket = null;
+            }
+            if (_sigmaThread != null)
+            {
+                _sigmaThread.Join(2000);
+                _sigmaThread = null;
+            }
+            _sigmaConnected = false;
+        }
+
+        private void SigmaLoop()
+        {
+            byte[] buf = new byte[65535];
+            while (_sigmaRunning)
+            {
+                int n;
+                try { n = _sigmaSocket.Receive(buf); }
+                catch (Exception)
+                {
+                    if (_sigmaRunning) { _sigmaConnected = false; Thread.Sleep(200); }
+                    continue;
+                }
+                if (n < 28 || (buf[0] >> 4) != 4 || buf[9] != 17) continue;   // IPv4 UDP
+                int ihl = (buf[0] & 0x0F) * 4;
+                if (ihl + 8 > n) continue;
+                int dstPort = (buf[ihl + 2] << 8) | buf[ihl + 3];
+                if (dstPort != SIGMA_PORT) continue;
+                int payOff = ihl + 8;
+                if (n - payOff < SIGMA_FRAME_LEN) continue;                   // not the motion frame
+                if (buf[payOff] != SIGMA_FRAME_TYPE) continue;
+
+                int pitchRaw = BitConverter.ToInt32(buf, payOff + SIGMA_PITCH_OFF);
+                int rollRaw = BitConverter.ToInt32(buf, payOff + SIGMA_ROLL_OFF);
+                lock (_sigmaLock)
+                {
+                    _sigmaPitchRad = pitchRaw * SIGMA_PITCH_RAD_PER_COUNT;
+                    _sigmaRollRad = rollRaw * SIGMA_ROLL_RAD_PER_COUNT;
+                    _sigmaLastPacketTicks = DateTime.UtcNow.Ticks;
+                }
+                _sigmaConnected = true;
+            }
+        }
+
+        private bool IsSigmaActive()
+        {
+            if (!_sigmaConnected) return false;
+            long ticks;
+            lock (_sigmaLock) { ticks = _sigmaLastPacketTicks; }
+            double elapsed = (DateTime.UtcNow.Ticks - ticks) / (double)TimeSpan.TicksPerSecond;
+            return elapsed < SENSOR_TIMEOUT_SEC;
+        }
+
+        // Sigma accessors for the settings UI
+        public double GetSigmaGain() { return _sigmaGain; }
+        public void AdjustSigmaGain(double delta) { _sigmaGain = Math.Max(0.1, Math.Min(10.0, _sigmaGain + delta)); SaveSettings(); }
+        public double GetSigmaSensorBlend() { return _sigmaSensorBlend; }
+        public void AdjustSigmaSensorBlend(double delta) { _sigmaSensorBlend = Math.Max(0, Math.Min(1.0, _sigmaSensorBlend + delta)); SaveSettings(); }
+        public double GetSigmaRollDeg() { lock (_sigmaLock) { return _sigmaRollRad * 180.0 / Math.PI; } }
+        public double GetSigmaPitchDeg() { lock (_sigmaLock) { return _sigmaPitchRad * 180.0 / Math.PI; } }
+        public string GetSigmaStatus()
+        {
+            string m = MODE_NAMES[_modeOverride];
+            if (m != "SIGMA" && m != "SIG+SENSOR") return "Not selected";
+            if (!_sigmaRunning) return _sigmaStatus.Length > 0 ? _sigmaStatus : "Stopped";
+            if (!IsSigmaActive()) return _sigmaStatus.Length > 0 ? _sigmaStatus : "Waiting for stream (drive to see)";
+            return "Active — receiving Sigma motion";
+        }
+
         // --- Main data update ---
 
         private volatile bool _gameRunning;
@@ -667,7 +840,7 @@ namespace User.OXRMCBridge
 
             double rollRad, pitchRad;
 
-            if (effectiveMode == "BLENDED")
+            if (effectiveMode == "TEL+SENSOR")
             {
                 if (!sensorActive || !_gameRunning)
                 {
@@ -678,7 +851,7 @@ namespace User.OXRMCBridge
                 }
             }
 
-            if (effectiveMode == "BLENDED")
+            if (effectiveMode == "TEL+SENSOR")
             {
                 double sensorRollRad, sensorPitchRad;
                 GetOrientedSensorRad(out sensorRollRad, out sensorPitchRad);
@@ -690,6 +863,48 @@ namespace User.OXRMCBridge
             {
                 if (!sensorActive) return;
                 GetOrientedSensorRad(out rollRad, out pitchRad);
+            }
+            else if (effectiveMode == "SIGMA")
+            {
+                // Rig's own commanded pitch/roll from the Sigma UDP stream. When the
+                // stream pauses (not driving) relax to level so no stale tilt lingers.
+                if (IsSigmaActive())
+                {
+                    double sr, sp;
+                    lock (_sigmaLock) { sr = _sigmaRollRad; sp = _sigmaPitchRad; }
+                    rollRad = sr * _sigmaGain * (_invertRoll ? -1.0 : 1.0);
+                    pitchRad = sp * _sigmaGain * (_invertPitch ? -1.0 : 1.0);
+                }
+                else
+                {
+                    rollRad = 0.0;
+                    pitchRad = 0.0;
+                }
+            }
+            else if (effectiveMode == "SIG+SENSOR")
+            {
+                // Blend the Sigma command (drift-free, low-latency) with the sensor
+                // (true physical angle). _sigmaSensorBlend is the sensor weight.
+                bool sigmaActive = IsSigmaActive();
+                double sigR = 0, sigP = 0;
+                if (sigmaActive)
+                {
+                    lock (_sigmaLock) { sigR = _sigmaRollRad; sigP = _sigmaPitchRad; }
+                    sigR = sigR * _sigmaGain * (_invertRoll ? -1.0 : 1.0);
+                    sigP = sigP * _sigmaGain * (_invertPitch ? -1.0 : 1.0);
+                }
+                double senR = 0, senP = 0;
+                if (sensorActive) GetOrientedSensorRad(out senR, out senP);
+
+                if (sigmaActive && sensorActive)
+                {
+                    double w = _sigmaSensorBlend;
+                    rollRad = w * senR + (1.0 - w) * sigR;
+                    pitchRad = w * senP + (1.0 - w) * sigP;
+                }
+                else if (sigmaActive) { rollRad = sigR; pitchRad = sigP; }
+                else if (sensorActive) { rollRad = senR; pitchRad = senP; }
+                else { rollRad = 0.0; pitchRad = 0.0; }
             }
             else
             {
@@ -738,7 +953,9 @@ namespace User.OXRMCBridge
                 OXRMCBridgeSettings s = this.ReadCommonSettings<OXRMCBridgeSettings>(SETTINGS_KEY, () => null);
                 if (s == null) return;
 
-                _modeOverride = (s.ModeOverride % 3 + 3) % 3;
+                _modeOverride = (s.ModeOverride % MODE_NAMES.Length + MODE_NAMES.Length) % MODE_NAMES.Length;
+                _sigmaGain = Math.Max(0.1, Math.Min(10.0, s.SigmaGain));
+                _sigmaSensorBlend = Math.Max(0, Math.Min(1.0, s.SigmaSensorBlend));
                 _rollGain = Math.Max(0, Math.Min(0.2, s.RollGain));
                 _pitchGain = Math.Max(0, Math.Min(0.2, s.PitchGain));
                 _invertRoll = s.InvertRoll;
@@ -776,6 +993,8 @@ namespace User.OXRMCBridge
                 OXRMCBridgeSettings s = new OXRMCBridgeSettings
                 {
                     ModeOverride = _modeOverride,
+                    SigmaGain = _sigmaGain,
+                    SigmaSensorBlend = _sigmaSensorBlend,
                     RollGain = _rollGain,
                     PitchGain = _pitchGain,
                     InvertRoll = _invertRoll,
@@ -806,6 +1025,7 @@ namespace User.OXRMCBridge
             SimHub.Logging.Current.Info("OXRMCBridge: stopping");
             SaveSettings();
             StopSensor();
+            StopSigma();
             if (_accessor != null) { try { _accessor.Dispose(); } catch (Exception) { } }
             if (_mmf != null) { try { _mmf.Dispose(); } catch (Exception) { } }
         }
@@ -816,6 +1036,8 @@ namespace User.OXRMCBridge
     public class OXRMCBridgeSettings
     {
         public int ModeOverride = 0;
+        public double SigmaGain = 1.0;
+        public double SigmaSensorBlend = 0.5;
         public double RollGain = 0.04;
         public double PitchGain = 0.04;
         public bool InvertRoll = false;

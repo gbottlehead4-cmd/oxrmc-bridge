@@ -6,3 +6,9 @@ dist/
 # Internal docs — keep local, never publish
 CLAUDE.md
 HANDOFF.md
+
+# Python cache from the tracing tools
+tools/__pycache__/
+
+# Release zips live on GitHub Releases, not in the tree
+*.zip
