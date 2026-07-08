@@ -29,5 +29,6 @@ stays hidden — the rest of the page is unaffected.
 - KV limits writes to the same key to ~1/second, so under a burst of simultaneous
   visits the tally may occasionally miss one. Fine for a vanity counter; the
   authoritative visit numbers are in **Cloudflare Web Analytics**.
-- The function lives here because `site/` is the Pages project **root directory**,
-  so `site/functions/api/hits.js` routes to `/api/hits`.
+- The `functions/` folder MUST sit at the **repo root**, not inside the `site/`
+  build-output folder — Cloudflare Pages discovers Functions from the project
+  root, not the static output dir. So `functions/api/hits.js` routes to `/api/hits`.
