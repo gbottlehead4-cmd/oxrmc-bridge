@@ -659,6 +659,7 @@
     <div style="margin-top:12px; font-size:.8rem; color:var(--muted); max-width:680px; margin-left:auto; margin-right:auto;">
       Independent, unofficial project. Not affiliated with, endorsed by, or supported by Sigma Integrale, WitMotion, OpenXR-MotionCompensation, or SimHub. "Sigma Integrale", "WitMotion", "SimHub" and other names are trademarks of their respective owners, used only to describe compatibility.
     </div>
+    <div id="siteStats" style="margin-top:16px; font-size:.72rem; color:var(--muted); opacity:.55;" hidden></div>
   </div>
 </footer>
 
@@ -684,6 +685,19 @@
       try { localStorage.setItem('theme', next); } catch (e) {}
       setIcon();
     });
+  })();
+
+  // Site stats: page-load tally (Cloudflare KV) + live GitHub download total.
+  // Silently stays hidden if the API is unreachable — never breaks the page.
+  (function () {
+    var el = document.getElementById('siteStats');
+    if (!el) return;
+    fetch('/api/hits').then(function (r) { return r.json(); }).then(function (d) {
+      var v = (d.visits || 0).toLocaleString();
+      var n = (d.downloads || 0).toLocaleString();
+      el.textContent = '👁 ' + v + ' visits · ⬇ ' + n + ' downloads';
+      el.hidden = false;
+    }).catch(function () { /* leave hidden */ });
   })();
 </script>
 

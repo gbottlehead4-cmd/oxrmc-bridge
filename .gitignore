@@ -12,3 +12,6 @@ tools/__pycache__/
 
 # Release zips live on GitHub Releases, not in the tree
 *.zip
+
+# Local Claude Code tooling (machine-specific paths)
+.claude/
