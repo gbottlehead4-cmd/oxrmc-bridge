@@ -293,7 +293,7 @@
 <section id="how" class="alt">
   <div class="wrap">
     <h2>How it works</h2>
-    <p class="muted" style="max-width:680px;">A small mounted <strong>sensor</strong> is the setup we recommend — it measures your platform's real tilt right where your head sits, which is exactly what OXRMC needs to cancel, and after a lot of testing it was the smoothest in every scenario (especially on rough tracks). Two no-hardware fallbacks exist — <strong>Sigma</strong> (reads a Sigma rig's commanded motion) and <strong>Telemetry</strong> (a game-based guess) — but neither matches a sensor, so treat them as backups.</p>
+    <p class="muted" style="max-width:680px;">A small mounted <strong>sensor</strong> is the setup I recommend — it measures your platform's real tilt right where your head sits, which is exactly what OXRMC needs to cancel, and after a lot of testing it was the smoothest in every scenario (especially on rough tracks). Two no-hardware fallbacks exist — <strong>Sigma</strong> (reads a Sigma rig's commanded motion) and <strong>Telemetry</strong> (a game-based guess) — but neither matches a sensor, so treat them as backups.</p>
     <table>
       <thead>
         <tr><th>Mode</th><th>Source</th><th>Accuracy</th><th>Requires</th></tr>
@@ -325,7 +325,7 @@
       <div class="ic">⚠️</div>
       <div>
         <h3>Why Telemetry is only a rough guess</h3>
-        <p class="muted" style="margin:0;">Telemetry estimates tilt from the game's raw g-forces — but your rig doesn't move on raw g-forces. Motion software (Sigma's, SimHub's, anyone's) runs the game data through its own profile first: washout, tilt-coordination, per-axis scaling, smoothing and travel limits, all adjustable. So what the platform actually does never matches the raw numbers. That's why the <strong>Sensor</strong> mode — true physical tilt, measured where your head sits — is the accurate one, and what we recommend. <strong>Sigma</strong> mode (the rig's own commanded pose) is closer than telemetry, but it still doesn't know where your head is and lags the platform slightly, so both Sigma and telemetry are best treated as no-sensor fallbacks.</p>
+        <p class="muted" style="margin:0;">Telemetry estimates tilt from the game's raw g-forces — but your rig doesn't move on raw g-forces. Motion software (Sigma's, SimHub's, anyone's) runs the game data through its own profile first: washout, tilt-coordination, per-axis scaling, smoothing and travel limits, all adjustable. So what the platform actually does never matches the raw numbers. That's why the <strong>Sensor</strong> mode — true physical tilt, measured where your head sits — is the accurate one, and the one I recommend. <strong>Sigma</strong> mode (the rig's own commanded pose) is closer than telemetry, but it still doesn't know where your head is and lags the platform slightly, so both Sigma and telemetry are best treated as no-sensor fallbacks.</p>
       </div>
     </div>
   </div>
@@ -492,7 +492,7 @@
 <section id="sensor">
   <div class="wrap">
     <h2>Add a WitMotion sensor — the recommended setup <span class="pill sensor">Sensor mode</span></h2>
-    <p class="muted" style="max-width:760px;">This is the setup we recommend. The plugin can run with no extra hardware (<span class="pill telemetry">Telemetry</span>, or <span class="pill sigma">Sigma</span> mode on a Sigma rig), but after a lot of driving a mounted sensor was the clear winner. Bolt a small sensor to your rig — ideally at seat height, near where your head sits — and it reads your platform's <em>real</em> tilt right there, which is exactly what OXRMC needs to cancel. It's noticeably smoother in every scenario, especially on rough tracks, and it never drifts out of sync. The plugin auto-detects the sensor and switches over on its own.</p>
+    <p class="muted" style="max-width:760px;">This is the setup I recommend. The plugin can run with no extra hardware (<span class="pill telemetry">Telemetry</span>, or <span class="pill sigma">Sigma</span> mode on a Sigma rig), but after a lot of driving a mounted sensor was the clear winner. Bolt a small sensor to your rig — ideally at seat height, near where your head sits — and it reads your platform's <em>real</em> tilt right there, which is exactly what OXRMC needs to cancel. It's noticeably smoother in every scenario, especially on rough tracks, and it never drifts out of sync. The plugin auto-detects the sensor and switches over on its own.</p>
 
     <div class="phase-label">Get the right one — they're not all the same</div>
     <div class="grid-2" style="margin-top:8px;">
