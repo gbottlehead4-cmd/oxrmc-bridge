@@ -208,7 +208,7 @@ namespace User.OXRMCBridge
             // Sigma Integrale — sensor-free source from the rig's own controller stream
             mainStack.Children.Add(CreateSectionHeader("Sigma Integrale — sensor-free"));
             var sigmaDesc = new TextBlock();
-            sigmaDesc.Text = "For Sigma Integrale rigs (any model — reads the Sigma Simulation app's controller stream). Gets the rig's own commanded pitch & roll — no WitMotion sensor needed, drift-free and full rate. Start SimHub BEFORE loading the game. Requires running SimHub as Administrator (raw network capture). Tuned on a DK2; if the amount feels off on another Sigma model, adjust Strength, and if an axis leans the wrong way use Invert.";
+            sigmaDesc.Text = "For Sigma Integrale rigs (any model — reads the Sigma Simulation app's controller stream). Gets the rig's own commanded pitch & roll — no WitMotion sensor needed, full rate. A no-sensor fallback: it's the platform's commanded pose, not the motion at your head, so it lags slightly and looks shakier (usually needs OXRMC's input stabilizer, which adds latency) and it's roughest on bumpy tracks. If you can, mount a sensor — it compensates better. Start SimHub BEFORE loading the game. Requires running SimHub as Administrator (raw network capture). Tuned on a DK2; if the amount feels off on another Sigma model, adjust Strength, and if an axis leans the wrong way use Invert.";
             sigmaDesc.Foreground = new SolidColorBrush(Color.FromRgb(140, 140, 140));
             sigmaDesc.TextWrapping = TextWrapping.Wrap;
             sigmaDesc.FontSize = 11;
@@ -534,11 +534,11 @@ namespace User.OXRMCBridge
             string modeSetting = _plugin.GetModeOverrideName();
             _overrideText.Text = modeSetting;
             if (modeSetting == "TELEMETRY")
-                _modeDescText.Text = "No sensor needed. Estimates rig position from in-game g-forces. Tune Roll/Pitch strength below to match your rig's feel.";
+                _modeDescText.Text = "No-sensor fallback. Estimates rig position from in-game g-forces — only a rough guess, the least accurate option. Fine to try, but for real compensation use SENSOR. Tune Roll/Pitch strength below to match your rig's feel.";
             else if (modeSetting == "SENSOR")
-                _modeDescText.Text = "Reads actual rig tilt from the WitMotion sensor. Most accurate. Set the mounting mode / yaw align below so it matches your rig, then calibrate.";
+                _modeDescText.Text = "★ RECOMMENDED. Reads actual rig tilt from the WitMotion sensor mounted at seat/head height — the best compensation in every scenario, especially rough tracks. Set the mounting mode / yaw align below so it matches your rig, then calibrate.";
             else if (modeSetting == "SIGMA")
-                _modeDescText.Text = "Sigma Integrale rigs only. Reads the rig's own commanded pitch/roll from the Sigma app — no sensor, drift-free, full rate. Needs SimHub run as Administrator. See the Sigma Integrale section below.";
+                _modeDescText.Text = "Sigma Integrale rigs only — a no-sensor fallback. Reads the rig's own commanded pitch/roll from the Sigma app (no sensor, full rate), but it's the platform's commanded pose, not the motion at your head, so it lags slightly and looks shakier (usually needs OXRMC's input stabilizer, which adds latency). A seat-height sensor still compensates better. Needs SimHub run as Administrator. See the Sigma Integrale section below.";
             else if (modeSetting == "SIG+SENSOR")
                 _modeDescText.Text = "Blends the Sigma command with the WitMotion sensor. Set the Sensor weight in the Sigma Integrale section. Needs SimHub run as Administrator.";
             else

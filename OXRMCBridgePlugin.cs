@@ -50,8 +50,9 @@ namespace User.OXRMCBridge
         // 0.0 = 100% telemetry, 1.0 = 100% sensor. Default 0.8 = sensor-dominant with telemetry for fast response.
         private double _blendAlpha = 0.8;
 
-        // Mode: 0=TELEMETRY, 1=SENSOR, 2=TEL+SENSOR, 3=SIGMA
-        private int _modeOverride = 0;
+        // Mode: 0=TELEMETRY, 1=SENSOR, 2=TEL+SENSOR, 3=SIGMA, 4=SIG+SENSOR
+        // Default = SENSOR (1): field-tested as the best compensation in every scenario.
+        private int _modeOverride = 1;
 
         // --- Sigma Integrale source ---
         // Reads the rig's own commanded pitch/roll from the Sigma motion software's
