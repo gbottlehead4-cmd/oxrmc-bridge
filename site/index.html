@@ -293,22 +293,22 @@
 <section id="how" class="alt">
   <div class="wrap">
     <h2>How it works</h2>
-    <p class="muted" style="max-width:680px;">Pick the source that fits your rig. Best accuracy from a mounted sensor or — on a Sigma Integrale rig — straight from the rig's own motion, with zero extra hardware. Telemetry works everywhere with nothing to buy.</p>
+    <p class="muted" style="max-width:680px;">A small mounted <strong>sensor</strong> is the setup we recommend — it measures your platform's real tilt right where your head sits, which is exactly what OXRMC needs to cancel, and after a lot of testing it was the smoothest in every scenario (especially on rough tracks). Two no-hardware fallbacks exist — <strong>Sigma</strong> (reads a Sigma rig's commanded motion) and <strong>Telemetry</strong> (a game-based guess) — but neither matches a sensor, so treat them as backups.</p>
     <table>
       <thead>
         <tr><th>Mode</th><th>Source</th><th>Accuracy</th><th>Requires</th></tr>
       </thead>
       <tbody>
         <tr>
-          <td><span class="pill sensor">Sensor</span></td>
+          <td><span class="pill sensor">Sensor</span> <strong>★ Recommended</strong></td>
           <td>WitMotion sensor on the rig</td>
-          <td>High — measures actual physical tilt</td>
+          <td>Best — measures real physical tilt at head height</td>
           <td>WitMotion WT901C-RS232 + USB adapter</td>
         </tr>
         <tr>
           <td><span class="pill sigma">Sigma</span></td>
           <td>Your Sigma Integrale rig's own commanded motion</td>
-          <td>High — the rig's real pitch &amp; roll, drift-free, no sensor</td>
+          <td>No-sensor fallback — the rig's <em>commanded</em> motion; laggier and shakier, and not the motion at your head</td>
           <td>A Sigma Integrale rig; SimHub run as admin</td>
         </tr>
         <tr>
@@ -325,7 +325,7 @@
       <div class="ic">⚠️</div>
       <div>
         <h3>Why Telemetry is only a rough guess</h3>
-        <p class="muted" style="margin:0;">Telemetry estimates tilt from the game's raw g-forces — but your rig doesn't move on raw g-forces. Motion software (Sigma's, SimHub's, anyone's) runs the game data through its own profile first: washout, tilt-coordination, per-axis scaling, smoothing and travel limits, all adjustable. So what the platform actually does never matches the raw numbers. That's exactly why the <strong>Sensor</strong> (true physical tilt) and <strong>Sigma</strong> (the rig's own commanded pose) modes are accurate, and telemetry is only a no-hardware fallback.</p>
+        <p class="muted" style="margin:0;">Telemetry estimates tilt from the game's raw g-forces — but your rig doesn't move on raw g-forces. Motion software (Sigma's, SimHub's, anyone's) runs the game data through its own profile first: washout, tilt-coordination, per-axis scaling, smoothing and travel limits, all adjustable. So what the platform actually does never matches the raw numbers. That's why the <strong>Sensor</strong> mode — true physical tilt, measured where your head sits — is the accurate one, and what we recommend. <strong>Sigma</strong> mode (the rig's own commanded pose) is closer than telemetry, but it still doesn't know where your head is and lags the platform slightly, so both Sigma and telemetry are best treated as no-sensor fallbacks.</p>
       </div>
     </div>
   </div>
@@ -432,8 +432,8 @@
     <div class="guide-step">
       <div class="gs-text">
         <div class="gs-num">6</div>
-        <h3>Telemetry or Sensor mode</h3>
-        <p>With no sensor the plugin runs in <span class="pill telemetry">Telemetry</span> mode — it estimates rig motion from in-game g-forces. Plug in a WitMotion sensor and it switches to <span class="pill sensor">Sensor</span> mode for true physical tilt. There's also a <strong>Blended</strong> mode that mixes both — use the <strong>CHANGE</strong> button to cycle modes.</p>
+        <h3>Pick your mode (Sensor recommended)</h3>
+        <p>For the best result, add a WitMotion sensor — the plugin auto-detects it and runs in <span class="pill sensor">Sensor</span> mode (true physical tilt, measured where your head sits). With no sensor it falls back to <span class="pill telemetry">Telemetry</span> (a g-force estimate) or, on a Sigma Integrale rig, <span class="pill sigma">Sigma</span> mode (the rig's commanded motion). There's also a <strong>Blended</strong> mode — use the <strong>CHANGE</strong> button to cycle modes.</p>
         <p>Either way, the live roll/pitch values start moving once a game is running.</p>
       </div>
       <div class="gs-shot">
@@ -488,11 +488,11 @@
   </div>
 </section>
 
-<!-- ============ SENSOR (optional upgrade) ============ -->
+<!-- ============ SENSOR (recommended) ============ -->
 <section id="sensor">
   <div class="wrap">
-    <h2>Add a WitMotion sensor <span class="pill sensor">Sensor mode</span></h2>
-    <p class="muted" style="max-width:760px;">Completely optional. The plugin already works with zero extra hardware in <span class="pill telemetry">Telemetry</span> mode, estimating tilt from in-game g-forces. Bolt a small sensor to your rig and it reads your platform's <em>real</em> tilt instead — noticeably smoother, and it never drifts out of sync with the action. The plugin auto-detects the sensor and switches over on its own.</p>
+    <h2>Add a WitMotion sensor — the recommended setup <span class="pill sensor">Sensor mode</span></h2>
+    <p class="muted" style="max-width:760px;">This is the setup we recommend. The plugin can run with no extra hardware (<span class="pill telemetry">Telemetry</span>, or <span class="pill sigma">Sigma</span> mode on a Sigma rig), but after a lot of driving a mounted sensor was the clear winner. Bolt a small sensor to your rig — ideally at seat height, near where your head sits — and it reads your platform's <em>real</em> tilt right there, which is exactly what OXRMC needs to cancel. It's noticeably smoother in every scenario, especially on rough tracks, and it never drifts out of sync. The plugin auto-detects the sensor and switches over on its own.</p>
 
     <div class="phase-label">Get the right one — they're not all the same</div>
     <div class="grid-2" style="margin-top:8px;">
@@ -582,17 +582,17 @@
 <!-- ============ SIGMA INTEGRALE (sensor-free) ============ -->
 <section id="sigma">
   <div class="wrap">
-    <h2>Sigma Integrale rig? Skip the sensor <span class="pill sigma">Sigma mode</span></h2>
-    <p class="muted" style="max-width:780px;">If you run a <strong>Sigma Integrale</strong> motion rig, the plugin can read the rig's <em>own</em> commanded pitch and roll directly — the exact motion the Sigma software is telling the platform to make. No WitMotion sensor to buy or mount, no drift, and it updates at full rate. It's the same accuracy as a sensor, with nothing extra bolted on.</p>
+    <h2>Sigma Integrale rig? A no-sensor fallback <span class="pill sigma">Sigma mode</span></h2>
+    <p class="muted" style="max-width:780px;">If you run a <strong>Sigma Integrale</strong> motion rig and don't want to mount a sensor, the plugin can read the rig's <em>own</em> commanded pitch and roll directly — the motion the Sigma software is telling the platform to make. No hardware to buy, no drift, full rate. It works — but it's not as good as a sensor: it doesn't know where your head is and it lags the platform slightly, so it tends to look shakier (usually needing the input stabilizer, which adds latency) and it struggles most on rough tracks. If you can mount a sensor, do — even on a Sigma rig it compensates better.</p>
 
     <div class="grid-2" style="margin-top:24px;">
       <div class="card">
-        <h3>What you get</h3>
+        <h3>The trade-off</h3>
         <ul class="muted" style="margin:0; padding-left:18px;">
           <li><strong>No sensor needed</strong> — zero extra hardware or wiring</li>
-          <li><strong>Drift-free</strong> — it's the rig's commanded pose, not an estimate</li>
-          <li><strong>Full rate</strong>, and always in sync with the platform</li>
-          <li>Works with any Sigma Integrale model (tuned on a DK2)</li>
+          <li><strong>Drift-free</strong> — it's the rig's commanded pose, not a g-force estimate</li>
+          <li><strong>Full rate</strong>, always in sync with what the platform is told to do</li>
+          <li><strong>But not the pose at your head</strong> — laggier and shakier than a sensor, worst on rough roads; a seat-height sensor still wins</li>
         </ul>
       </div>
       <div class="card">
@@ -627,7 +627,7 @@
       </div>
       <div class="card">
         <h3>🎯 Pick an accurate source</h3>
-        <p class="muted">Telemetry only <em>estimates</em> tilt from raw g-forces — but your rig reshapes that data with its own motion profile (washout, limits, scaling), so it never quite matches. For accuracy use <span class="pill sensor">Sensor</span> (true physical tilt) or, on a Sigma rig, <span class="pill sigma">Sigma</span> (the rig's own commanded pose). Both are smoother and correct; the stabilizer above helps any mode.</p>
+        <p class="muted">Telemetry only <em>estimates</em> tilt from raw g-forces — but your rig reshapes that data with its own motion profile (washout, limits, scaling), so it never quite matches. For the best result use <span class="pill sensor">Sensor</span> mode — true physical tilt, measured where your head sits. <span class="pill sigma">Sigma</span> mode (the rig's commanded pose) is a no-sensor alternative but usually needs the stabilizer, which adds lag, so a sensor stays smoother overall. The stabilizer above helps any mode.</p>
       </div>
       <div class="card">
         <h3>🎚️ Extra smoothing (optional)</h3>
